@@ -1,0 +1,41 @@
+# Base dependencies
+fastapi
+uvicorn
+pydantic
+
+# Core ML libraries
+# torch and torchvision are already in the base image
+transformers==4.46.0
+peft==0.14.0
+pytorchvideo==0.1.5
+accelerate==0.34.2
+
+
+# Utilities
+requests==2.31.0
+huggingface-hub
+numpy==1.26.4
+opencv-python-headless==4.8.0.76
+matplotlib==3.8.2
+protobuf==3.20.*
+
+# Audio processing
+soundfile
+librosa
+openai-whisper
+pydub
+kaldiio
+jiwer
+
+# Other dependencies
+ftfy
+pillow
+hydra-core
+loguru==0.7.2
+
+# Evaluation-specific dependencies
+word2number
+Levenshtein
+datasets==2.16.1
+
+triton==3.1.0
