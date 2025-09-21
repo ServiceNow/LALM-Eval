@@ -7,6 +7,8 @@ import statistics
 import yaml
 from pathlib import Path
 from typing import Any, Dict
+import tarfile
+import zipfile
 from . import constants
 from utils.custom_logging import configure
 from utils.task_utils import _validate_task_metric_pairs, get_groups, get_tasks 
@@ -23,6 +25,57 @@ def get_class_from_module(module_prefix, module_name):
     except Exception as e:
         logger.warning(f"Could not import {module_name} from {module_prefix}: {e}")
         return None
+
+def extract_tar_gz(file_path, extract_path="."):
+    """
+        Extracts a .tar.gz file to a specified path.
+        Args:
+        ----
+        file_path: str: Path to the archive `.tar.gz` file.
+        extract_path: str: Directory to extract the contents to.
+    """
+    try:
+        print ("Tar gz extraction")
+        with tarfile.open(file_path, "r:gz") as tar:
+            tar.extractall(path=extract_path)
+        logger.warning(f"Successfully extracted {file_path} to {extract_path}")
+    except tarfile.ReadError as e:
+        logger.warning(f"Error reading tar.gz file: {e}")
+    except Exception as e:
+        logger.warning(f"An unexpected error occurred: {e}")
+
+def extract_zip(file_path, extract_path="."):
+    """
+        Extracts a .zip file to a specified path.
+        Args:
+        ----
+        file_path: str: Path to the archive `.zip` file.
+        extract_path: str: Directory to extract the contents to.
+    """
+    try:
+        with zipfile.ZipFile(file_path, 'r') as zip_ref:
+            zip_ref.extractall(extract_path)
+        logger.warning(f"Successfully extracted {file_path} to {extract_path}")
+    except zipfile.BadZipFile as e:
+        logger.warning(f"Error reading zip file: {e}")
+    except Exception as e:
+        logger.warning(f"An unexpected error occurred: {e}")
+
+def extract_archive(file_path, extract_path="."):
+    """
+        Extracts either a .tar.gz or .zip file based on its extension.
+
+        Args:
+        ----
+        file_path: str: Path to the archive file.
+        extract_path: str: Directory to extract the contents to.
+    """
+    if file_path.endswith(".tar.gz"):
+        extract_tar_gz(file_path, extract_path)
+    elif file_path.endswith(".zip"):
+        extract_zip(file_path, extract_path)
+    else:
+        logger.warnning(f"Unsupported archive format for file: {file_path}")
 
 def smart_round(val: float, precision: int = constants.ROUND_DIGITS) -> float:
     """Round off metrics to global precision value.
