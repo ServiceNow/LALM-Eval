@@ -29,6 +29,7 @@ For more detailed documentation regarding which metrics can be used for which ta
 | `joint_goal_accuracy` (&uarr;)   | Dialogue state tracking - all slots match             | joint_goal_accuracy              |
 | `slot_accuracy` (&uarr;)   | Dialogue state tracking - per-slot accuracy             | slot_accuracy              |
 | `slot_f1` (&uarr;)   | Dialogue state tracking - slot extraction F1             | slot_f1              |
+| `multiple_choice_accuracy` (&uarr;)   | Accuracy of prediction the correct option letter in multiple choice tasks     | multiple_choice_accuracy              |
 
 --- 
 
@@ -184,3 +185,10 @@ For more detailed documentation regarding which metrics can be used for which ta
 - **Description**: Computes F1 score for slot value extraction, balancing precision and recall of predicted slot-value pairs.
 - **Scoring (record-level)** Score between `0` and `1`, higher is better.
 - **Used In**: Task-Oriented Dialogue (`spoken_dialogue`)
+---
+
+### `multiple_choice_accuracy`
+- **Type**: Multiple choice accuracy metric
+- **Description**: Measure the accuracy of prediction the correct option letter in multiple choice tasks. The correct option is expected in the format `Answer: A`
+- **Scoring (record-level)** Score between `0` and `100`, higher is better.
+- **Used In**: Audio Instruction Following (`ifeval`)

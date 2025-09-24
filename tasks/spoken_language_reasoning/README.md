@@ -32,3 +32,4 @@ bash data/scripts/downnload_spider.sh
 | **BFCL**               | Speech Function Calling          | [spoken_language_reasoning/bfcl](./bfcl/base.yaml)| Speech-based complex function calling dataset with audio input       |    Apache-2.0    |
 | **SPEECH_TO_SQL**               | Speech-to-Coding         | [spoken_language_reasoning/speech_to_sql](./speech_to_sql/base.yaml)| Speech-based dataset involving following instructions to produce executable code        |    Apache-2.0     |
 | **GSM8k**               | Grade School Math         | [spoken_language_reasoning/gsm8k](./gsm8k/base.yaml)| Speech-based math dataset with grade school math word problems       |    MIT (text dataset)     |
+| **GPQA Diamond**               | Grade School Math         | [spoken_language_reasoning/gpqa_diamond](./gpqa_diamond/base.yaml)| Speech based questions considered difficult, written and validated by experts in biology, physics, and chemistry.       |   cc-by-4.0     |
