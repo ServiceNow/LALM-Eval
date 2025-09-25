@@ -21,6 +21,7 @@ from metrics.wer.whisper_normalizer.english import EnglishTextNormalizer
 # Inference server types
 INFERENCE_SERVER_VLLM_CHAT_COMPLETION = 'vllm'
 OPENAI_CHAT_COMPLETION = 'openai'
+GEMINI_CHAT_COMPLETION = 'gemini'
 TRANSCRIPTION = 'transcription'
 
 # WER/CER metrics constants

@@ -301,6 +301,7 @@ class Model(ABC):
             if self.inference_type in (
                     constants.INFERENCE_SERVER_VLLM_CHAT_COMPLETION,
                     constants.OPENAI_CHAT_COMPLETION,
+                    constants.GEMINI_CHAT_COMPLETION,
             ):
                 for i in range(num_chunks):
                     start = i * max_samples
@@ -381,6 +382,7 @@ class Model(ABC):
         if self.inference_type in (
                 constants.INFERENCE_SERVER_VLLM_CHAT_COMPLETION,
                 constants.OPENAI_CHAT_COMPLETION,
+                constants.GEMINI_CHAT_COMPLETION,
         ):
             # Cut to first 30s, then process as chat completion
             if audio_array is not None and len(audio_array) > 0:
@@ -472,6 +474,7 @@ class Model(ABC):
         if self.inference_type not in (
                 constants.INFERENCE_SERVER_VLLM_CHAT_COMPLETION,
                 constants.OPENAI_CHAT_COMPLETION,
+                constants.GEMINI_CHAT_COMPLETION,
         ):
             raise ValueError("Multi-turn conversations only supported for chat completion inference types")
 

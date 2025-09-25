@@ -1,6 +1,6 @@
 
 import importlib
-import json
+import re
 import logging
 import os
 import statistics
@@ -219,7 +219,7 @@ def _validate_models(config: Dict) -> None:
         ValueError: If the models section is invalid
     """
     def validate_required_fields(info: Dict, index: int) -> None:
-        required_fields = ['name', 'model', 'inference_type', 'url']
+        required_fields = ['name', 'model', 'inference_type']
         for field in required_fields:
             if not info.get(field) or not isinstance(info[field], str) or not info[field].strip():
                 raise ValueError(f"Model {index}: '{field}' must be a non-empty string")
@@ -411,9 +411,68 @@ def setup_logging(log_file: str):
     # Set httpx logger to WARNING level to reduce noise
     logging.getLogger("httpx").setLevel(logging.WARNING)
 
+def _replace_env_vars(value):
+    """
+    Replace environment variables in strings.
+    Supports ${ENV_VAR} and $ENV_VAR syntax.
+    
+    Args:
+        value: String value that may contain environment variables
+        
+    Returns:
+        String with environment variables substituted
+    """
+    if not isinstance(value, str):
+        return value
+    
+    # Replace ${VAR} format
+    pattern1 = re.compile(r'\${([^}^{]+)}')
+    matches = pattern1.findall(value)
+    if matches:
+        for match in matches:
+            env_var = os.environ.get(match)
+            if env_var is not None:
+                value = value.replace(f"${{{match}}}", env_var)
+            else:
+                logger.warning(f"Environment variable '{match}' not found when processing config")
+    
+    # Replace $VAR format
+    pattern2 = re.compile(r'(?<!\\)\$([a-zA-Z0-9_]+)')
+    matches = pattern2.findall(value)
+    if matches:
+        for match in matches:
+            env_var = os.environ.get(match)
+            if env_var is not None:
+                value = value.replace(f"${match}", env_var)
+            else:
+                logger.warning(f"Environment variable '{match}' not found when processing config")
+    
+    return value
+
+def _process_nested_env_vars(data):
+    """
+    Process all values in a nested dictionary/list structure,
+    replacing environment variables in string values.
+    
+    Args:
+        data: Dict, list, or scalar value
+        
+    Returns:
+        Data with environment variables substituted in string values
+    """
+    if isinstance(data, dict):
+        return {k: _process_nested_env_vars(v) for k, v in data.items()}
+    elif isinstance(data, list):
+        return [_process_nested_env_vars(item) for item in data]
+    elif isinstance(data, str):
+        return _replace_env_vars(data)
+    else:
+        return data
+
 def read_config(cfg_path: str):
     """
     Read configuration file and set up logging.
+    Supports environment variable substitution in the format ${ENV_VAR} or $ENV_VAR.
     
     Args:
         cfg_path: Path to configuration file
@@ -424,6 +483,10 @@ def read_config(cfg_path: str):
     # Set up logging
     with open(cfg_path, encoding='utf-8') as f:
         raw_cfg = yaml.safe_load(f)
+        
+    # Process environment variables in the config
+    raw_cfg = _process_nested_env_vars(raw_cfg)
+        
     log_file = raw_cfg.get("logging", {}).get("log_file", "default.log")
     setup_logging(log_file)
     

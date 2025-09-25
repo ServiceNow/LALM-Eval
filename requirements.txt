@@ -52,3 +52,7 @@ immutabledict==4.2.1
 
 # Debugging
 debugpy==1.8.0           # VSCode debugging support
+
+# Gemimini libraries
+google-auth==2.40.3
+google-genai==1.38.0
