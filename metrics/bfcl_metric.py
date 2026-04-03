@@ -99,6 +99,121 @@ class BFCLMatchScore(Metrics):
                     return False, f"Dict value mismatch at '{k}': {tv} != {rv}"
         return True, ""
 
+    def _compare_param_value(self, param, tool_value, ref_value, python_type):
+        """Compare a single parameter's value against its reference.
+
+        Returns (ok: bool, errors: list[str]).
+        """
+        errors = []
+
+        # Empty/None means no constraint
+        if ref_value in ("", None):
+            return True, []
+
+        # Normalize numeric float/int
+        if python_type == float and isinstance(tool_value, int):
+            tool_value = float(tool_value)
+
+        # ---- dict parameter handling ----
+        if python_type == dict:
+            if isinstance(ref_value, dict):
+                ok, msg = self._compare_dicts(tool_value, ref_value)
+                if not ok:
+                    errors.append(msg)
+                    return False, errors
+            elif isinstance(ref_value, list):
+                # list of dict-templates: succeed if any template matches
+                dict_templates = [x for x in ref_value if isinstance(x, dict)]
+                if len(dict_templates) == len(ref_value) and dict_templates:
+                    matched_any = False
+                    last_msg = ""
+                    for tmpl in dict_templates:
+                        ok, msg = self._compare_dicts(tool_value, tmpl)
+                        if ok:
+                            matched_any = True
+                            break
+                        else:
+                            last_msg = msg
+                    if not matched_any:
+                        errors.append(
+                            f"Dict value for '{param}' did not match any allowed templates. Last error: {last_msg}"
+                        )
+                        return False, errors
+                else:
+                    # Fallback: treat as allowed list of whole dicts (exact match)
+                    if tool_value not in ref_value:
+                        errors.append(
+                            f"Value for '{param}' not in allowed list: {tool_value} ∉ {ref_value}"
+                        )
+                        return False, errors
+            else:
+                errors.append(
+                    f"Type mismatch for '{param}': expected dict semantics, got {type(ref_value).__name__} in reference"
+                )
+                return False, errors
+
+        elif python_type == list:
+            if isinstance(ref_value, list):
+                # Case: list of possible lists (list-of-lists)
+                if all(isinstance(x, list) for x in ref_value):
+                    matched_any = False
+                    last_msg = ""
+                    for candidate_list in ref_value:
+                        if len(tool_value) != len(candidate_list):
+                            continue
+                        elementwise_ok = True
+                        for tv, rv in zip(tool_value, candidate_list):
+                            if isinstance(rv, dict) and isinstance(tv, dict):
+                                ok, msg = self._compare_dicts(tv, rv)
+                                if not ok:
+                                    elementwise_ok = False
+                                    last_msg = msg
+                                    break
+                            else:
+                                if tv != rv:
+                                    elementwise_ok = False
+                                    last_msg = f"List element mismatch: {tv} != {rv}"
+                                    break
+                        if elementwise_ok:
+                            matched_any = True
+                            break
+                    if not matched_any:
+                        errors.append(
+                            f"List value for '{param}' did not match any allowed options. Last error: {last_msg}"
+                        )
+                        return False, errors
+                else:
+                    # Simple allowed-values check
+                    if tool_value not in ref_value:
+                        errors.append(
+                            f"Value for '{param}' not in allowed list: {tool_value} ∉ {ref_value}"
+                        )
+                        return False, errors
+            else:
+                if tool_value != ref_value:
+                    errors.append(
+                        f"Mismatch for '{param}': {tool_value} != {ref_value}"
+                    )
+                    return False, errors
+
+        else:
+            # ---- Scalar types: string, integer, float, boolean, any ----
+            if isinstance(ref_value, list):
+                # ref_value is a list of allowed values
+                if tool_value not in ref_value:
+                    errors.append(
+                        f"Invalid value for '{param}': {tool_value!r}. Expected one of {ref_value}."
+                    )
+                    return False, errors
+            else:
+                if tool_value != ref_value:
+                    errors.append(
+                        f"Value mismatch for '{param}': {tool_value!r} != {ref_value!r}"
+                    )
+                    return False, errors
+
+        return True, []
+
     def _compare_tool_call(self, tool_call, ref_call, tool_required_params):
         """Compare one tool call against its reference."""
         if not isinstance(tool_call, dict) or not isinstance(ref_call, dict):
@@ -124,109 +239,75 @@ class BFCLMatchScore(Metrics):
         if required_params is None:
             return False, [f"Missing required-params metadata for tool '{tool_name}'"]
 
+        # Build a lookup from required_params for type info
+        required_params_type_map = {p: t for p, t in required_params}
+
         all_match = True
         errors = []
 
+        # --- 1. Check all required parameters are present ---
         for param, param_type in required_params:
-            python_type = PYTHON_TYPE_MAPPING.get(param_type, str)
-
-            if param not in tool_params or param not in ref_params:
+            if param not in tool_params:
                 errors.append(f"Missing required parameter '{param}'.")
                 all_match = False
-                break
+                return all_match, errors
 
-            tool_value = self._standardize_value(tool_params[param])
-            ref_value = self._standardize_value(ref_params[param])
-
-            # Empty/None means no constraint
-            if ref_value in ("", None):
+        # --- 2. Validate every parameter the model provided ---
+        for param, tool_raw_value in tool_params.items():
+            if param not in ref_params:
+                # Already caught above in the unexpected-params check, but be safe
+                errors.append(f"Unexpected parameter: {param}")
+                all_match = False
                 continue
 
-            # Normalize numeric float/int
-            if python_type == float and isinstance(tool_value, int):
-                tool_value = float(tool_value)
-
-            # ---- dict parameter handling ----
-            if python_type == dict:
-                if isinstance(ref_value, dict):
-                    ok, msg = self._compare_dicts(tool_value, ref_value)
-                    if not ok:
-                        errors.append(msg)
-                        all_match = False
-                elif isinstance(ref_value, list):
-                    # list of dict-templates: succeed if any template matches
-                    dict_templates = [x for x in ref_value if isinstance(x, dict)]
-                    if len(dict_templates) == len(ref_value) and dict_templates:
-                        matched_any = False
-                        last_msg = ""
-                        for tmpl in dict_templates:
-                            ok, msg = self._compare_dicts(tool_value, tmpl)
-                            if ok:
-                                matched_any = True
-                                break
-                            else:
-                                last_msg = msg
-                        if not matched_any:
-                            errors.append(
-                                f"Dict value for '{param}' did not match any allowed templates. Last error: {last_msg}"
-                            )
-                            all_match = False
-                    else:
-                        # Fallback: treat as allowed list of whole dicts (exact match)
-                        if tool_value not in ref_value:
-                            errors.append(
-                                f"Value for '{param}' not in allowed list: {tool_value} ∉ {ref_value}"
-                            )
-                            all_match = False
+            # Determine the type: use required_params metadata if available,
+            # otherwise infer from the reference value
+            if param in required_params_type_map:
+                param_type = required_params_type_map[param]
+            else:
+                # Optional parameter not in required_params — infer type from value
+                ref_raw = ref_params[param]
+                if isinstance(ref_raw, dict):
+                    param_type = "dict"
+                elif isinstance(ref_raw, list):
+                    param_type = "array"
+                elif isinstance(ref_raw, bool):
+                    param_type = "boolean"
+                elif isinstance(ref_raw, int):
+                    param_type = "integer"
+                elif isinstance(ref_raw, float):
+                    param_type = "float"
                 else:
+                    param_type = "string"
+
+            python_type = PYTHON_TYPE_MAPPING.get(param_type, str)
+
+            tool_value = self._standardize_value(tool_raw_value)
+            ref_value = self._standardize_value(ref_params[param])
+
+            ok, param_errors = self._compare_param_value(param, tool_value, ref_value, python_type)
+            if not ok:
+                errors.extend(param_errors)
+                all_match = False
+
+        # --- 3. Check for missing optional parameters that are NOT marked optional ---
+        # In BFCL, a reference value of "" or None means the parameter is truly
+        # optional (no constraint). If the reference has a non-empty value but the
+        # model omitted it, that's an error.
+        for param, ref_raw_value in ref_params.items():
+            if param not in tool_params:
+                # Already covered if it's a required param (checked above).
+                # For optional params: reject only if reference has a real constraint.
+                standardized = self._standardize_value(ref_raw_value)
+                is_optional_marker = standardized in ("", None)
+                # Also treat a list containing "" as optional
+                if isinstance(standardized, list) and "" in [self._standardize_value(v) for v in ref_raw_value]:
+                    is_optional_marker = True
+                if not is_optional_marker:
                     errors.append(
-                        f"Type mismatch for '{param}': expected dict semantics, got {type(ref_value).__name__} in reference"
+                        f"Missing parameter '{param}' which has expected value in ground truth."
                     )
                     all_match = False
-
-            elif python_type == list:
-                if isinstance(ref_value, list):
-                    # Case: list of possible lists (list-of-lists)
-                    if all(isinstance(x, list) for x in ref_value):
-                        matched_any = False
-                        last_msg = ""
-                        for candidate_list in ref_value:
-                            if len(tool_value) != len(candidate_list):
-                                continue
-                            elementwise_ok = True
-                            for tv, rv in zip(tool_value, candidate_list):
-                                if isinstance(rv, dict) and isinstance(tv, dict):
-                                    ok, msg = self._compare_dicts(tv, rv)
-                                    if not ok:
-                                        elementwise_ok = False
-                                        last_msg = msg
-                                        break
-                                else:
-                                    if tv != rv:
-                                        elementwise_ok = False
-                                        last_msg = f"List element mismatch: {tv} != {rv}"
-                                        break
-                            if elementwise_ok:
-                                matched_any = True
-                                break
-                        if not matched_any:
-                            errors.append(
-                                f"List value for '{param}' did not match any allowed options. Last error: {last_msg}"
-                            )
-                            all_match = False
-                    else:
-                        # Simple allowed-values check
-                        if tool_value not in ref_value:
-                            errors.append(
-                                f"Value for '{param}' not in allowed list: {tool_value} ∉ {ref_value}"
-                            )
-                            all_match = False
-                else:
-                    if tool_value != ref_value:
-                        errors.append(
-                            f"Mismatch for '{param}': {tool_value} != {ref_value}"
-                        )
-                        all_match = False
 
         return all_match, errors
 
