@@ -1,0 +1,1316 @@
+{
+  "audio_understanding": {
+    "name": "🔊 Audio Understanding",
+    "description": "Tasks that require understanding of the general audio signals including but not limited to music, noise, sound.",
+    "tasks": {
+      "music_understanding": {
+        "name": "Music Understanding",
+        "metrics": [
+          "llm_judge_binary"
+        ],
+        "configs": [
+          "mu_chomusic_test"
+        ]
+      },
+      "scene_understanding": {
+        "name": "Scene Understanding",
+        "metrics": [
+          "llm_judge_detailed"
+        ],
+        "configs": [
+          "audiocaps_qa_test",
+          "audiocaps_test",
+          "clotho_aqa_test",
+          "wavcaps_qa_test",
+          "wavcaps_test"
+        ]
+      }
+    }
+  },
+  "paralinguistics": {
+    "name": "🎭 Paralinguistics",
+    "description": "Tasks that analyze non-verbal aspects of speech such as emotion, gender, accent, and speaker characteristics.",
+    "tasks": {
+      "accent_recognition": {
+        "name": "Accent Recognition",
+        "metrics": [
+          "llm_judge_binary"
+        ],
+        "configs": [
+          "mnsc_pqa_ar_dialogue_test",
+          "mnsc_pqa_ar_sentence_test",
+          "voxceleb_accent_test"
+        ]
+      },
+      "emotion_recognition": {
+        "name": "Emotion Recognition",
+        "metrics": [
+          "llm_judge_binary"
+        ],
+        "configs": [
+          "iemocap_emotion_recognition",
+          "meld_emotion_test",
+          "meld_sentiment_test"
+        ]
+      },
+      "gender_recognition": {
+        "name": "Gender Recognition",
+        "metrics": [
+          "llm_judge_binary"
+        ],
+        "configs": [
+          "iemocap_gender_recognition",
+          "mnsc_pqa_gr_dialogue_test",
+          "mnsc_pqa_gr_sentence_test",
+          "voxceleb_gender_test"
+        ]
+      },
+      "speaker_diarization": {
+        "name": "Speaker Diarization",
+        "metrics": [
+          "diarization_metrics"
+        ],
+        "configs": [
+          "callhome_diarization_deu",
+          "callhome_diarization_eng",
+          "callhome_diarization_jpn",
+          "callhome_diarization_spa",
+          "callhome_diarization_zho"
+        ]
+      },
+      "speaker_recognition": {
+        "name": "Speaker Recognition",
+        "metrics": [
+          "llm_judge_binary"
+        ],
+        "configs": [
+          "mmau_mini"
+        ]
+      }
+    }
+  },
+  "phonetics": {
+    "name": "📢 Phonetics",
+    "description": "Tasks related to phonetic analysis, phoneme recognition, and speech sound processing.",
+    "tasks": {
+      "phonemes": {
+        "name": "Phonemes",
+        "metrics": [
+          "llm_judge_binary",
+          "detailed_judge_prompt"
+        ],
+        "configs": [
+          "voxangeles_phoneme_counting"
+        ]
+      }
+    }
+  },
+  "safety_and_security": {
+    "name": "🔐 Safety and Security",
+    "description": "Tasks related to assessing model behavior around safety, robustness, and vulnerability to spoofing or adversarial content.",
+    "tasks": {
+      "safety": {
+        "name": "Safety",
+        "metrics": [
+          "llm_judge_redteaming"
+        ],
+        "configs": [
+          "advbench"
+        ]
+      },
+      "spoofing": {
+        "name": "Spoofing",
+        "metrics": [
+          "llm_judge_binary",
+          "detailed_judge_prompt"
+        ],
+        "configs": [
+          "asvspoof"
+        ]
+      }
+    }
+  },
+  "speech_disorder": {
+    "name": "🩺 Speech Disorder",
+    "description": "Tasks related to detecting and analyzing speech disorders and voice pathologies.",
+    "tasks": {
+      "voice_disorder": {
+        "name": "Voice Disorder",
+        "metrics": [
+          "llm_judge_binary",
+          "detailed_judge_prompt"
+        ],
+        "configs": [
+          "stuttering_detection"
+        ]
+      }
+    }
+  },
+  "speech_enhancement": {
+    "name": "✨ Speech Enhancement",
+    "description": "Tasks related to speech quality improvement, noise detection, and audio enhancement.",
+    "tasks": {
+      "noise_detection": {
+        "name": "Noise Detection",
+        "metrics": [
+          "llm_judge_binary",
+          "detailed_judge_prompt"
+        ],
+        "configs": [
+          "noise_detection"
+        ]
+      }
+    }
+  },
+  "speech_recognition": {
+    "name": "🗣️ Speech Recognition",
+    "description": "Tasks involving automatic speech recognition (ASR), including standard ASR, long-form ASR, and code-switching ASR.",
+    "tasks": {
+      "asr": {
+        "name": "Asr",
+        "metrics": [
+          "word_error_rate"
+        ],
+        "configs": [
+          "aishell_1_test",
+          "ami_ihm",
+          "ami_sdm",
+          "callhome_asr_deu",
+          "callhome_asr_eng",
+          "callhome_asr_jpn",
+          "callhome_asr_spa",
+          "callhome_asr_zho",
+          "common_voice_15_ab",
+          "common_voice_15_af",
+          "common_voice_15_am",
+          "common_voice_15_ar",
+          "common_voice_15_as",
+          "common_voice_15_ast",
+          "common_voice_15_az",
+          "common_voice_15_ba",
+          "common_voice_15_bas",
+          "common_voice_15_be",
+          "common_voice_15_bg",
+          "common_voice_15_bn",
+          "common_voice_15_br",
+          "common_voice_15_ca",
+          "common_voice_15_ckb",
+          "common_voice_15_cnh",
+          "common_voice_15_cs",
+          "common_voice_15_cv",
+          "common_voice_15_cy",
+          "common_voice_15_da",
+          "common_voice_15_de",
+          "common_voice_15_dv",
+          "common_voice_15_dyu",
+          "common_voice_15_el",
+          "common_voice_15_en",
+          "common_voice_15_eo",
+          "common_voice_15_es",
+          "common_voice_15_et",
+          "common_voice_15_eu",
+          "common_voice_15_fa",
+          "common_voice_15_fi",
+          "common_voice_15_fr",
+          "common_voice_15_fy-NL",
+          "common_voice_15_ga-IE",
+          "common_voice_15_gl",
+          "common_voice_15_ha",
+          "common_voice_15_hi",
+          "common_voice_15_hsb",
+          "common_voice_15_hu",
+          "common_voice_15_hy-AM",
+          "common_voice_15_ia",
+          "common_voice_15_id",
+          "common_voice_15_ig",
+          "common_voice_15_it",
+          "common_voice_15_ja",
+          "common_voice_15_ka",
+          "common_voice_15_kab",
+          "common_voice_15_kk",
+          "common_voice_15_kmr",
+          "common_voice_15_ko",
+          "common_voice_15_ky",
+          "common_voice_15_lg",
+          "common_voice_15_lt",
+          "common_voice_15_lv",
+          "common_voice_15_mdf",
+          "common_voice_15_mg",
+          "common_voice_15_mk",
+          "common_voice_15_ml",
+          "common_voice_15_mn",
+          "common_voice_15_mr",
+          "common_voice_15_mt",
+          "common_voice_15_myv",
+          "common_voice_15_ne-NP",
+          "common_voice_15_nl",
+          "common_voice_15_nn-NO",
+          "common_voice_15_or",
+          "common_voice_15_pa-IN",
+          "common_voice_15_pl",
+          "common_voice_15_pt",
+          "common_voice_15_rm-sursilv",
+          "common_voice_15_rm-vallader",
+          "common_voice_15_ro",
+          "common_voice_15_ru",
+          "common_voice_15_rw",
+          "common_voice_15_sah",
+          "common_voice_15_sat",
+          "common_voice_15_sc",
+          "common_voice_15_sk",
+          "common_voice_15_sl",
+          "common_voice_15_sr",
+          "common_voice_15_sv-SE",
+          "common_voice_15_sw",
+          "common_voice_15_ta",
+          "common_voice_15_te",
+          "common_voice_15_tg",
+          "common_voice_15_th",
+          "common_voice_15_ti",
+          "common_voice_15_tok",
+          "common_voice_15_tr",
+          "common_voice_15_tt",
+          "common_voice_15_ug",
+          "common_voice_15_uk",
+          "common_voice_15_ur",
+          "common_voice_15_uz",
+          "common_voice_15_vot",
+          "common_voice_15_yi",
+          "common_voice_15_yue",
+          "common_voice_15_zh-CN",
+          "common_voice_15_zh-HK",
+          "common_voice_15_zh-TW",
+          "fleurs_af_za",
+          "fleurs_am_et",
+          "fleurs_ar_eg",
+          "fleurs_as_in",
+          "fleurs_ast_es",
+          "fleurs_az_az",
+          "fleurs_be_by",
+          "fleurs_bg_bg",
+          "fleurs_bn_in",
+          "fleurs_bs_ba",
+          "fleurs_ca_es",
+          "fleurs_ceb_ph",
+          "fleurs_ckb_iq",
+          "fleurs_cmn_hans_cn",
+          "fleurs_cs_cz",
+          "fleurs_cy_gb",
+          "fleurs_da_dk",
+          "fleurs_de_de",
+          "fleurs_el_gr",
+          "fleurs_en_us",
+          "fleurs_es_419",
+          "fleurs_et_ee",
+          "fleurs_fa_ir",
+          "fleurs_ff_sn",
+          "fleurs_fi_fi",
+          "fleurs_fil_ph",
+          "fleurs_fr_fr",
+          "fleurs_ga_ie",
+          "fleurs_gl_es",
+          "fleurs_gu_in",
+          "fleurs_ha_ng",
+          "fleurs_he_il",
+          "fleurs_hi_in",
+          "fleurs_hr_hr",
+          "fleurs_hu_hu",
+          "fleurs_hy_am",
+          "fleurs_id_id",
+          "fleurs_ig_ng",
+          "fleurs_is_is",
+          "fleurs_it_it",
+          "fleurs_ja_jp",
+          "fleurs_jv_id",
+          "fleurs_ka_ge",
+          "fleurs_kam_ke",
+          "fleurs_kea_cv",
+          "fleurs_kk_kz",
+          "fleurs_km_kh",
+          "fleurs_kn_in",
+          "fleurs_ko_kr",
+          "fleurs_ky_kg",
+          "fleurs_lb_lu",
+          "fleurs_lg_ug",
+          "fleurs_ln_cd",
+          "fleurs_lo_la",
+          "fleurs_lt_lt",
+          "fleurs_luo_ke",
+          "fleurs_lv_lv",
+          "fleurs_mi_nz",
+          "fleurs_mk_mk",
+          "fleurs_ml_in",
+          "fleurs_mn_mn",
+          "fleurs_mr_in",
+          "fleurs_ms_my",
+          "fleurs_mt_mt",
+          "fleurs_my_mm",
+          "fleurs_nb_no",
+          "fleurs_ne_np",
+          "fleurs_nl_nl",
+          "fleurs_nso_za",
+          "fleurs_ny_mw",
+          "fleurs_oc_fr",
+          "fleurs_om_et",
+          "fleurs_or_in",
+          "fleurs_pa_in",
+          "fleurs_pl_pl",
+          "fleurs_ps_af",
+          "fleurs_pt_br",
+          "fleurs_ro_ro",
+          "fleurs_ru_ru",
+          "fleurs_sd_in",
+          "fleurs_sk_sk",
+          "fleurs_sl_si",
+          "fleurs_sn_zw",
+          "fleurs_so_so",
+          "fleurs_sr_rs",
+          "fleurs_sv_se",
+          "fleurs_sw_ke",
+          "fleurs_ta_in",
+          "fleurs_te_in",
+          "fleurs_tg_tj",
+          "fleurs_th_th",
+          "fleurs_tr_tr",
+          "fleurs_uk_ua",
+          "fleurs_umb_ao",
+          "fleurs_ur_pk",
+          "fleurs_uz_uz",
+          "fleurs_vi_vn",
+          "fleurs_wo_sn",
+          "fleurs_xh_za",
+          "fleurs_yo_ng",
+          "fleurs_yue_hant_hk",
+          "fleurs_zu_za",
+          "gigaspeech_test",
+          "gigaspeech2_id_test",
+          "gigaspeech2_th_test",
+          "gigaspeech2_vi_test",
+          "librispeech_test_clean",
+          "librispeech_test_other",
+          "librispeech_multilingual_dutch",
+          "librispeech_multilingual_french",
+          "librispeech_multilingual_german",
+          "librispeech_multilingual_italian",
+          "librispeech_multilingual_polish",
+          "librispeech_multilingual_portuguese",
+          "librispeech_multilingual_spanish",
+          "mnsc_asr_part1_test",
+          "mnsc_asr_part2_test",
+          "mnsc_asr_part3_test",
+          "mnsc_asr_part4_test",
+          "mnsc_asr_part5_test",
+          "mnsc_asr_part6_test",
+          "peoples_speech_test",
+          "spgispeech_test",
+          "tedlium3_test",
+          "voxpopuli_cs",
+          "voxpopuli_de",
+          "voxpopuli_en",
+          "voxpopuli_en_accented",
+          "voxpopuli_es",
+          "voxpopuli_et",
+          "voxpopuli_fi",
+          "voxpopuli_fr",
+          "voxpopuli_hr",
+          "voxpopuli_hu",
+          "voxpopuli_it",
+          "voxpopuli_lt",
+          "voxpopuli_nl",
+          "voxpopuli_pl",
+          "voxpopuli_ro",
+          "voxpopuli_sk",
+          "voxpopuli_sl"
+        ]
+      },
+      "code_switching_asr": {
+        "name": "Code Switching Asr",
+        "metrics": [
+          "word_error_rate"
+        ],
+        "configs": [
+          "seame_dev_man",
+          "seame_dev_sge"
+        ]
+      },
+      "long_form_asr": {
+        "name": "Long Form Asr",
+        "metrics": [
+          "word_error_rate"
+        ],
+        "configs": [
+          "earnings21",
+          "earnings22",
+          "tedlium3_long_form"
+        ]
+      }
+    }
+  },
+  "spoken_language_reasoning": {
+    "name": "🧩 Spoken Language Reasoning",
+    "description": "Tasks that require reasoning over spoken input, such as instruction following or logical/mathematical reasoning.",
+    "tasks": {
+      "bfcl": {
+        "name": "Bfcl",
+        "metrics": [
+          "bfcl_match_score"
+        ],
+        "configs": [
+          "bfcl_audio_irrelevance",
+          "bfcl_audio_multiple",
+          "bfcl_audio_parallel",
+          "bfcl_audio_parallel_multiple",
+          "bfcl_audio_simple",
+          "bfcl_audio_irrelevance_no_prompt",
+          "bfcl_audio_multiple_no_prompt",
+          "bfcl_audio_parallel_multiple_no_prompt",
+          "bfcl_audio_parallel_no_prompt",
+          "bfcl_audio_simple_no_prompt",
+          "bfcl_text_irrelevance",
+          "bfcl_text_multiple",
+          "bfcl_text_parallel",
+          "bfcl_text_parallel_multiple",
+          "bfcl_text_simple",
+          "bfcl_text_irrelevance_no_prompt",
+          "bfcl_text_multiple_no_prompt",
+          "bfcl_text_parallel_multiple_no_prompt",
+          "bfcl_text_parallel_no_prompt",
+          "bfcl_text_simple_no_prompt"
+        ]
+      },
+      "gsm8k": {
+        "name": "Gsm8K",
+        "metrics": [
+          "gsm8k_exact_match"
+        ],
+        "configs": [
+          "gsm8k_audio",
+          "gsm8k_text"
+        ]
+      },
+      "ifeval": {
+        "name": "Ifeval",
+        "metrics": [
+          "instruction_following"
+        ],
+        "configs": [
+          "voicebench_ifeval_audio",
+          "voicebench_ifeval_text"
+        ]
+      },
+      "mtbench": {
+        "name": "Mtbench",
+        "metrics": [
+          "mt_bench_llm_judge"
+        ],
+        "configs": [
+          "mtbench_audio",
+          "mtbench_text"
+        ]
+      },
+      "speech_to_sql": {
+        "name": "Speech To Sql",
+        "metrics": [
+          "sql_score"
+        ],
+        "configs": [
+          "spider_audio",
+          "spider_text"
+        ]
+      }
+    }
+  },
+  "spoken_language_understanding": {
+    "name": "🧠 Spoken Language Understanding",
+    "description": "Tasks that require understanding of spoken language and/or audio information including QA, translation, summarization, and intent classification.",
+    "tasks": {
+      "intent_classification": {
+        "name": "Intent Classification",
+        "metrics": [
+          "llm_judge_binary"
+        ],
+        "configs": [
+          "SLURP-intent"
+        ]
+      },
+      "speech_qa": {
+        "name": "Speech Qa",
+        "metrics": [
+          "llm_judge_detailed"
+        ],
+        "configs": [
+          "alpaca_audio_test",
+          "cn_college_listen_mcq_test",
+          "dream_tts_mcq_test",
+          "mnsc_sqa_part3_test",
+          "mnsc_sqa_part4_test",
+          "mnsc_sqa_part5_test",
+          "mnsc_sqa_part6_test",
+          "openhermes_instruction_test",
+          "public_sg_speech_qa_test",
+          "slue_p2_sqa5_test",
+          "spoken_squad_test"
+        ]
+      },
+      "spoken_dialogue": {
+        "name": "Spoken Dialogue",
+        "metrics": [
+          "joint_goal_accuracy",
+          "slot_accuracy",
+          "slot_f1",
+          "bleu"
+        ],
+        "configs": [
+          "spokenwoz_audio",
+          "spokenwoz_text"
+        ]
+      },
+      "spoken_dialogue_summarization": {
+        "name": "Spoken Dialogue Summarization",
+        "metrics": [
+          "llm_judge_detailed"
+        ],
+        "configs": [
+          "mnsc_sds_part3_test",
+          "mnsc_sds_part4_test",
+          "mnsc_sds_part5_test"
+        ]
+      },
+      "sqqa": {
+        "name": "Sqqa",
+        "metrics": [
+          "llm_judge_big_bench_audio"
+        ],
+        "configs": [
+          "big_bench_audio_audio_query",
+          "big_bench_audio_text_query",
+          "mmsu_biology",
+          "mmsu_business",
+          "mmsu_chemistry",
+          "mmsu_economics",
+          "mmsu_engineering",
+          "mmsu_health",
+          "mmsu_history",
+          "mmsu_law",
+          "mmsu_other",
+          "mmsu_philosophy",
+          "mmsu_physics",
+          "mmsu_psychology",
+          "openbookqa",
+          "sd-qa_aus_audio",
+          "sd-qa_aus_text",
+          "sd-qa_gbr_audio",
+          "sd-qa_gbr_text",
+          "sd-qa_ind_n_audio",
+          "sd-qa_ind_n_text",
+          "sd-qa_ind_s_audio",
+          "sd-qa_ind_s_text",
+          "sd-qa_irl_audio",
+          "sd-qa_irl_text",
+          "sd-qa_kenya_audio",
+          "sd-qa_kenya_text",
+          "sd-qa_nga_audio",
+          "sd-qa_nga_text",
+          "sd-qa_nzl_audio",
+          "sd-qa_nzl_text",
+          "sd-qa_phl_audio",
+          "sd-qa_phl_text",
+          "sd-qa_usa_audio",
+          "sd-qa_usa_text",
+          "sd-qa_zaf_audio",
+          "sd-qa_zaf_text"
+        ]
+      },
+      "translation": {
+        "name": "Translation",
+        "metrics": [
+          "bleu",
+          "meteor",
+          "bertscore",
+          "comet"
+        ],
+        "configs": [
+          "covost2_ar_en",
+          "covost2_ca_en",
+          "covost2_cy_en",
+          "covost2_de_en",
+          "covost2_en_ar",
+          "covost2_en_ca",
+          "covost2_en_cy",
+          "covost2_en_de",
+          "covost2_en_et",
+          "covost2_en_fa",
+          "covost2_en_id",
+          "covost2_en_ja",
+          "covost2_en_lv",
+          "covost2_en_mn",
+          "covost2_en_sl",
+          "covost2_en_sv-SE",
+          "covost2_en_ta",
+          "covost2_en_tr",
+          "covost2_en_zh-CN",
+          "covost2_es_en",
+          "covost2_et_en",
+          "covost2_fa_en",
+          "covost2_fr_en",
+          "covost2_id_en",
+          "covost2_it_en",
+          "covost2_ja_en",
+          "covost2_lv_en",
+          "covost2_mn_en",
+          "covost2_nl_en",
+          "covost2_pt_en",
+          "covost2_ru_en",
+          "covost2_sl_en",
+          "covost2_sv-SE_en",
+          "covost2_ta_en",
+          "covost2_tr_en",
+          "covost2_zh-CN_en"
+        ]
+      }
+    }
+  },
+  "music_understanding": {
+    "name": "Music Understanding",
+    "metrics": [
+      "llm_judge_binary"
+    ],
+    "configs": [
+      "mu_chomusic_test"
+    ],
+    "category": "audio_understanding"
+  },
+  "scene_understanding": {
+    "name": "Scene Understanding",
+    "metrics": [
+      "llm_judge_detailed"
+    ],
+    "configs": [
+      "audiocaps_qa_test",
+      "audiocaps_test",
+      "clotho_aqa_test",
+      "wavcaps_qa_test",
+      "wavcaps_test"
+    ],
+    "category": "audio_understanding"
+  },
+  "accent_recognition": {
+    "name": "Accent Recognition",
+    "metrics": [
+      "llm_judge_binary"
+    ],
+    "configs": [
+      "mnsc_pqa_ar_dialogue_test",
+      "mnsc_pqa_ar_sentence_test",
+      "voxceleb_accent_test"
+    ],
+    "category": "paralinguistics"
+  },
+  "emotion_recognition": {
+    "name": "Emotion Recognition",
+    "metrics": [
+      "llm_judge_binary"
+    ],
+    "configs": [
+      "iemocap_emotion_recognition",
+      "meld_emotion_test",
+      "meld_sentiment_test"
+    ],
+    "category": "paralinguistics"
+  },
+  "gender_recognition": {
+    "name": "Gender Recognition",
+    "metrics": [
+      "llm_judge_binary"
+    ],
+    "configs": [
+      "iemocap_gender_recognition",
+      "mnsc_pqa_gr_dialogue_test",
+      "mnsc_pqa_gr_sentence_test",
+      "voxceleb_gender_test"
+    ],
+    "category": "paralinguistics"
+  },
+  "speaker_diarization": {
+    "name": "Speaker Diarization",
+    "metrics": [
+      "diarization_metrics"
+    ],
+    "configs": [
+      "callhome_diarization_deu",
+      "callhome_diarization_eng",
+      "callhome_diarization_jpn",
+      "callhome_diarization_spa",
+      "callhome_diarization_zho"
+    ],
+    "category": "paralinguistics"
+  },
+  "speaker_recognition": {
+    "name": "Speaker Recognition",
+    "metrics": [
+      "llm_judge_binary"
+    ],
+    "configs": [
+      "mmau_mini"
+    ],
+    "category": "paralinguistics"
+  },
+  "phonemes": {
+    "name": "Phonemes",
+    "metrics": [
+      "llm_judge_binary",
+      "detailed_judge_prompt"
+    ],
+    "configs": [
+      "voxangeles_phoneme_counting"
+    ],
+    "category": "phonetics"
+  },
+  "safety": {
+    "name": "Safety",
+    "metrics": [
+      "llm_judge_redteaming"
+    ],
+    "configs": [
+      "advbench"
+    ],
+    "category": "safety_and_security"
+  },
+  "spoofing": {
+    "name": "Spoofing",
+    "metrics": [
+      "llm_judge_binary",
+      "detailed_judge_prompt"
+    ],
+    "configs": [
+      "asvspoof"
+    ],
+    "category": "safety_and_security"
+  },
+  "voice_disorder": {
+    "name": "Voice Disorder",
+    "metrics": [
+      "llm_judge_binary",
+      "detailed_judge_prompt"
+    ],
+    "configs": [
+      "stuttering_detection"
+    ],
+    "category": "speech_disorder"
+  },
+  "noise_detection": {
+    "name": "Noise Detection",
+    "metrics": [
+      "llm_judge_binary",
+      "detailed_judge_prompt"
+    ],
+    "configs": [
+      "noise_detection"
+    ],
+    "category": "speech_enhancement"
+  },
+  "asr": {
+    "name": "Asr",
+    "metrics": [
+      "word_error_rate"
+    ],
+    "configs": [
+      "aishell_1_test",
+      "ami_ihm",
+      "ami_sdm",
+      "callhome_asr_deu",
+      "callhome_asr_eng",
+      "callhome_asr_jpn",
+      "callhome_asr_spa",
+      "callhome_asr_zho",
+      "common_voice_15_ab",
+      "common_voice_15_af",
+      "common_voice_15_am",
+      "common_voice_15_ar",
+      "common_voice_15_as",
+      "common_voice_15_ast",
+      "common_voice_15_az",
+      "common_voice_15_ba",
+      "common_voice_15_bas",
+      "common_voice_15_be",
+      "common_voice_15_bg",
+      "common_voice_15_bn",
+      "common_voice_15_br",
+      "common_voice_15_ca",
+      "common_voice_15_ckb",
+      "common_voice_15_cnh",
+      "common_voice_15_cs",
+      "common_voice_15_cv",
+      "common_voice_15_cy",
+      "common_voice_15_da",
+      "common_voice_15_de",
+      "common_voice_15_dv",
+      "common_voice_15_dyu",
+      "common_voice_15_el",
+      "common_voice_15_en",
+      "common_voice_15_eo",
+      "common_voice_15_es",
+      "common_voice_15_et",
+      "common_voice_15_eu",
+      "common_voice_15_fa",
+      "common_voice_15_fi",
+      "common_voice_15_fr",
+      "common_voice_15_fy-NL",
+      "common_voice_15_ga-IE",
+      "common_voice_15_gl",
+      "common_voice_15_ha",
+      "common_voice_15_hi",
+      "common_voice_15_hsb",
+      "common_voice_15_hu",
+      "common_voice_15_hy-AM",
+      "common_voice_15_ia",
+      "common_voice_15_id",
+      "common_voice_15_ig",
+      "common_voice_15_it",
+      "common_voice_15_ja",
+      "common_voice_15_ka",
+      "common_voice_15_kab",
+      "common_voice_15_kk",
+      "common_voice_15_kmr",
+      "common_voice_15_ko",
+      "common_voice_15_ky",
+      "common_voice_15_lg",
+      "common_voice_15_lt",
+      "common_voice_15_lv",
+      "common_voice_15_mdf",
+      "common_voice_15_mg",
+      "common_voice_15_mk",
+      "common_voice_15_ml",
+      "common_voice_15_mn",
+      "common_voice_15_mr",
+      "common_voice_15_mt",
+      "common_voice_15_myv",
+      "common_voice_15_ne-NP",
+      "common_voice_15_nl",
+      "common_voice_15_nn-NO",
+      "common_voice_15_or",
+      "common_voice_15_pa-IN",
+      "common_voice_15_pl",
+      "common_voice_15_pt",
+      "common_voice_15_rm-sursilv",
+      "common_voice_15_rm-vallader",
+      "common_voice_15_ro",
+      "common_voice_15_ru",
+      "common_voice_15_rw",
+      "common_voice_15_sah",
+      "common_voice_15_sat",
+      "common_voice_15_sc",
+      "common_voice_15_sk",
+      "common_voice_15_sl",
+      "common_voice_15_sr",
+      "common_voice_15_sv-SE",
+      "common_voice_15_sw",
+      "common_voice_15_ta",
+      "common_voice_15_te",
+      "common_voice_15_tg",
+      "common_voice_15_th",
+      "common_voice_15_ti",
+      "common_voice_15_tok",
+      "common_voice_15_tr",
+      "common_voice_15_tt",
+      "common_voice_15_ug",
+      "common_voice_15_uk",
+      "common_voice_15_ur",
+      "common_voice_15_uz",
+      "common_voice_15_vot",
+      "common_voice_15_yi",
+      "common_voice_15_yue",
+      "common_voice_15_zh-CN",
+      "common_voice_15_zh-HK",
+      "common_voice_15_zh-TW",
+      "fleurs_af_za",
+      "fleurs_am_et",
+      "fleurs_ar_eg",
+      "fleurs_as_in",
+      "fleurs_ast_es",
+      "fleurs_az_az",
+      "fleurs_be_by",
+      "fleurs_bg_bg",
+      "fleurs_bn_in",
+      "fleurs_bs_ba",
+      "fleurs_ca_es",
+      "fleurs_ceb_ph",
+      "fleurs_ckb_iq",
+      "fleurs_cmn_hans_cn",
+      "fleurs_cs_cz",
+      "fleurs_cy_gb",
+      "fleurs_da_dk",
+      "fleurs_de_de",
+      "fleurs_el_gr",
+      "fleurs_en_us",
+      "fleurs_es_419",
+      "fleurs_et_ee",
+      "fleurs_fa_ir",
+      "fleurs_ff_sn",
+      "fleurs_fi_fi",
+      "fleurs_fil_ph",
+      "fleurs_fr_fr",
+      "fleurs_ga_ie",
+      "fleurs_gl_es",
+      "fleurs_gu_in",
+      "fleurs_ha_ng",
+      "fleurs_he_il",
+      "fleurs_hi_in",
+      "fleurs_hr_hr",
+      "fleurs_hu_hu",
+      "fleurs_hy_am",
+      "fleurs_id_id",
+      "fleurs_ig_ng",
+      "fleurs_is_is",
+      "fleurs_it_it",
+      "fleurs_ja_jp",
+      "fleurs_jv_id",
+      "fleurs_ka_ge",
+      "fleurs_kam_ke",
+      "fleurs_kea_cv",
+      "fleurs_kk_kz",
+      "fleurs_km_kh",
+      "fleurs_kn_in",
+      "fleurs_ko_kr",
+      "fleurs_ky_kg",
+      "fleurs_lb_lu",
+      "fleurs_lg_ug",
+      "fleurs_ln_cd",
+      "fleurs_lo_la",
+      "fleurs_lt_lt",
+      "fleurs_luo_ke",
+      "fleurs_lv_lv",
+      "fleurs_mi_nz",
+      "fleurs_mk_mk",
+      "fleurs_ml_in",
+      "fleurs_mn_mn",
+      "fleurs_mr_in",
+      "fleurs_ms_my",
+      "fleurs_mt_mt",
+      "fleurs_my_mm",
+      "fleurs_nb_no",
+      "fleurs_ne_np",
+      "fleurs_nl_nl",
+      "fleurs_nso_za",
+      "fleurs_ny_mw",
+      "fleurs_oc_fr",
+      "fleurs_om_et",
+      "fleurs_or_in",
+      "fleurs_pa_in",
+      "fleurs_pl_pl",
+      "fleurs_ps_af",
+      "fleurs_pt_br",
+      "fleurs_ro_ro",
+      "fleurs_ru_ru",
+      "fleurs_sd_in",
+      "fleurs_sk_sk",
+      "fleurs_sl_si",
+      "fleurs_sn_zw",
+      "fleurs_so_so",
+      "fleurs_sr_rs",
+      "fleurs_sv_se",
+      "fleurs_sw_ke",
+      "fleurs_ta_in",
+      "fleurs_te_in",
+      "fleurs_tg_tj",
+      "fleurs_th_th",
+      "fleurs_tr_tr",
+      "fleurs_uk_ua",
+      "fleurs_umb_ao",
+      "fleurs_ur_pk",
+      "fleurs_uz_uz",
+      "fleurs_vi_vn",
+      "fleurs_wo_sn",
+      "fleurs_xh_za",
+      "fleurs_yo_ng",
+      "fleurs_yue_hant_hk",
+      "fleurs_zu_za",
+      "gigaspeech_test",
+      "gigaspeech2_id_test",
+      "gigaspeech2_th_test",
+      "gigaspeech2_vi_test",
+      "librispeech_test_clean",
+      "librispeech_test_other",
+      "librispeech_multilingual_dutch",
+      "librispeech_multilingual_french",
+      "librispeech_multilingual_german",
+      "librispeech_multilingual_italian",
+      "librispeech_multilingual_polish",
+      "librispeech_multilingual_portuguese",
+      "librispeech_multilingual_spanish",
+      "mnsc_asr_part1_test",
+      "mnsc_asr_part2_test",
+      "mnsc_asr_part3_test",
+      "mnsc_asr_part4_test",
+      "mnsc_asr_part5_test",
+      "mnsc_asr_part6_test",
+      "peoples_speech_test",
+      "spgispeech_test",
+      "tedlium3_test",
+      "voxpopuli_cs",
+      "voxpopuli_de",
+      "voxpopuli_en",
+      "voxpopuli_en_accented",
+      "voxpopuli_es",
+      "voxpopuli_et",
+      "voxpopuli_fi",
+      "voxpopuli_fr",
+      "voxpopuli_hr",
+      "voxpopuli_hu",
+      "voxpopuli_it",
+      "voxpopuli_lt",
+      "voxpopuli_nl",
+      "voxpopuli_pl",
+      "voxpopuli_ro",
+      "voxpopuli_sk",
+      "voxpopuli_sl"
+    ],
+    "category": "speech_recognition"
+  },
+  "code_switching_asr": {
+    "name": "Code Switching Asr",
+    "metrics": [
+      "word_error_rate"
+    ],
+    "configs": [
+      "seame_dev_man",
+      "seame_dev_sge"
+    ],
+    "category": "speech_recognition"
+  },
+  "long_form_asr": {
+    "name": "Long Form Asr",
+    "metrics": [
+      "word_error_rate"
+    ],
+    "configs": [
+      "earnings21",
+      "earnings22",
+      "tedlium3_long_form"
+    ],
+    "category": "speech_recognition"
+  },
+  "bfcl": {
+    "name": "Bfcl",
+    "metrics": [
+      "bfcl_match_score"
+    ],
+    "configs": [
+      "bfcl_audio_irrelevance",
+      "bfcl_audio_multiple",
+      "bfcl_audio_parallel",
+      "bfcl_audio_parallel_multiple",
+      "bfcl_audio_simple",
+      "bfcl_audio_irrelevance_no_prompt",
+      "bfcl_audio_multiple_no_prompt",
+      "bfcl_audio_parallel_multiple_no_prompt",
+      "bfcl_audio_parallel_no_prompt",
+      "bfcl_audio_simple_no_prompt",
+      "bfcl_text_irrelevance",
+      "bfcl_text_multiple",
+      "bfcl_text_parallel",
+      "bfcl_text_parallel_multiple",
+      "bfcl_text_simple",
+      "bfcl_text_irrelevance_no_prompt",
+      "bfcl_text_multiple_no_prompt",
+      "bfcl_text_parallel_multiple_no_prompt",
+      "bfcl_text_parallel_no_prompt",
+      "bfcl_text_simple_no_prompt"
+    ],
+    "category": "spoken_language_reasoning"
+  },
+  "gsm8k": {
+    "name": "Gsm8K",
+    "metrics": [
+      "gsm8k_exact_match"
+    ],
+    "configs": [
+      "gsm8k_audio",
+      "gsm8k_text"
+    ],
+    "category": "spoken_language_reasoning"
+  },
+  "ifeval": {
+    "name": "Ifeval",
+    "metrics": [
+      "instruction_following"
+    ],
+    "configs": [
+      "voicebench_ifeval_audio",
+      "voicebench_ifeval_text"
+    ],
+    "category": "spoken_language_reasoning"
+  },
+  "mtbench": {
+    "name": "Mtbench",
+    "metrics": [
+      "mt_bench_llm_judge"
+    ],
+    "configs": [
+      "mtbench_audio",
+      "mtbench_text"
+    ],
+    "category": "spoken_language_reasoning"
+  },
+  "speech_to_sql": {
+    "name": "Speech To Sql",
+    "metrics": [
+      "sql_score"
+    ],
+    "configs": [
+      "spider_audio",
+      "spider_text"
+    ],
+    "category": "spoken_language_reasoning"
+  },
+  "intent_classification": {
+    "name": "Intent Classification",
+    "metrics": [
+      "llm_judge_binary"
+    ],
+    "configs": [
+      "SLURP-intent"
+    ],
+    "category": "spoken_language_understanding"
+  },
+  "speech_qa": {
+    "name": "Speech Qa",
+    "metrics": [
+      "llm_judge_detailed"
+    ],
+    "configs": [
+      "alpaca_audio_test",
+      "cn_college_listen_mcq_test",
+      "dream_tts_mcq_test",
+      "mnsc_sqa_part3_test",
+      "mnsc_sqa_part4_test",
+      "mnsc_sqa_part5_test",
+      "mnsc_sqa_part6_test",
+      "openhermes_instruction_test",
+      "public_sg_speech_qa_test",
+      "slue_p2_sqa5_test",
+      "spoken_squad_test"
+    ],
+    "category": "spoken_language_understanding"
+  },
+  "spoken_dialogue": {
+    "name": "Spoken Dialogue",
+    "metrics": [
+      "joint_goal_accuracy",
+      "slot_accuracy",
+      "slot_f1",
+      "bleu"
+    ],
+    "configs": [
+      "spokenwoz_audio",
+      "spokenwoz_text"
+    ],
+    "category": "spoken_language_understanding"
+  },
+  "spoken_dialogue_summarization": {
+    "name": "Spoken Dialogue Summarization",
+    "metrics": [
+      "llm_judge_detailed"
+    ],
+    "configs": [
+      "mnsc_sds_part3_test",
+      "mnsc_sds_part4_test",
+      "mnsc_sds_part5_test"
+    ],
+    "category": "spoken_language_understanding"
+  },
+  "sqqa": {
+    "name": "Sqqa",
+    "metrics": [
+      "llm_judge_big_bench_audio"
+    ],
+    "configs": [
+      "big_bench_audio_audio_query",
+      "big_bench_audio_text_query",
+      "mmsu_biology",
+      "mmsu_business",
+      "mmsu_chemistry",
+      "mmsu_economics",
+      "mmsu_engineering",
+      "mmsu_health",
+      "mmsu_history",
+      "mmsu_law",
+      "mmsu_other",
+      "mmsu_philosophy",
+      "mmsu_physics",
+      "mmsu_psychology",
+      "openbookqa",
+      "sd-qa_aus_audio",
+      "sd-qa_aus_text",
+      "sd-qa_gbr_audio",
+      "sd-qa_gbr_text",
+      "sd-qa_ind_n_audio",
+      "sd-qa_ind_n_text",
+      "sd-qa_ind_s_audio",
+      "sd-qa_ind_s_text",
+      "sd-qa_irl_audio",
+      "sd-qa_irl_text",
+      "sd-qa_kenya_audio",
+      "sd-qa_kenya_text",
+      "sd-qa_nga_audio",
+      "sd-qa_nga_text",
+      "sd-qa_nzl_audio",
+      "sd-qa_nzl_text",
+      "sd-qa_phl_audio",
+      "sd-qa_phl_text",
+      "sd-qa_usa_audio",
+      "sd-qa_usa_text",
+      "sd-qa_zaf_audio",
+      "sd-qa_zaf_text"
+    ],
+    "category": "spoken_language_understanding"
+  },
+  "translation": {
+    "name": "Translation",
+    "metrics": [
+      "bleu",
+      "meteor",
+      "bertscore",
+      "comet"
+    ],
+    "configs": [
+      "covost2_ar_en",
+      "covost2_ca_en",
+      "covost2_cy_en",
+      "covost2_de_en",
+      "covost2_en_ar",
+      "covost2_en_ca",
+      "covost2_en_cy",
+      "covost2_en_de",
+      "covost2_en_et",
+      "covost2_en_fa",
+      "covost2_en_id",
+      "covost2_en_ja",
+      "covost2_en_lv",
+      "covost2_en_mn",
+      "covost2_en_sl",
+      "covost2_en_sv-SE",
+      "covost2_en_ta",
+      "covost2_en_tr",
+      "covost2_en_zh-CN",
+      "covost2_es_en",
+      "covost2_et_en",
+      "covost2_fa_en",
+      "covost2_fr_en",
+      "covost2_id_en",
+      "covost2_it_en",
+      "covost2_ja_en",
+      "covost2_lv_en",
+      "covost2_mn_en",
+      "covost2_nl_en",
+      "covost2_pt_en",
+      "covost2_ru_en",
+      "covost2_sl_en",
+      "covost2_sv-SE_en",
+      "covost2_ta_en",
+      "covost2_tr_en",
+      "covost2_zh-CN_en"
+    ],
+    "category": "spoken_language_understanding"
+  }
+}
