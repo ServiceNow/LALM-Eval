@@ -18,6 +18,251 @@ PYTHON_TYPE_MAPPING = {
     "any": str,
 }
 
+# Types for which we recursively check element types (one level deep)
+PYTHON_NESTED_TYPE_CHECK_LIST = ["array", "tuple"]
+
+
+#### Standalone helper functions (ported from original ast_checker.py) ####
+
+def get_possible_answer_type(possible_answer: list):
+    """Return the Python type of the first non-empty entry, or None if all are empty."""
+    for answer in possible_answer:
+        if answer != "":
+            return type(answer)
+    return None
+
+
+def type_checker(
+    param: str,
+    value,
+    possible_answer: list,
+    expected_type_description: str,
+    expected_type_converted,
+    nested_type_converted,
+):
+    """Verify that value has the correct Python type.
+
+    Also detects variable references — when the model echoes back a variable
+    name (a string) rather than a resolved literal. In that case is_variable is
+    set so callers can skip strict value comparisons.
+
+    NOTE: Nested type checking is one level deep only.
+    """
+    result = {
+        "valid": True,
+        "error": [],
+        "is_variable": False,
+        "error_type": "type_error:simple",
+    }
+
+    # Detect variable reference: possible_answer holds a string when the
+    # expected type is not string, meaning the reference itself is a variable name.
+    is_variable = False
+    possible_answer_type = get_possible_answer_type(possible_answer)
+    if possible_answer_type is not None and possible_answer_type != expected_type_converted:
+        is_variable = True
+
+    if type(value) == expected_type_converted:
+        if nested_type_converted is None:
+            result["is_variable"] = is_variable
+            return result
+
+        # Nested type check: each element of value must match nested_type_converted
+        for possible_answer_item in possible_answer:
+            flag = True
+            if type(possible_answer_item) == list:
+                for value_item in value:
+                    checker_result = type_checker(
+                        param,
+                        value_item,
+                        possible_answer_item,
+                        str(nested_type_converted),
+                        nested_type_converted,
+                        None,
+                    )
+                    if not checker_result["valid"]:
+                        flag = False
+                        break
+            if flag:
+                return {"valid": True, "error": [], "is_variable": is_variable}
+
+        result["valid"] = False
+        result["error"] = [
+            f"Nested type checking failed for parameter {repr(param)}. "
+            f"Expected outer type {expected_type_description} with inner type "
+            f"{str(nested_type_converted)}. Parameter value: {repr(value)}."
+        ]
+        result["error_type"] = "type_error:nested"
+        return result
+
+    # Value has wrong type — check if model returned a variable reference string
+    possible_answer_type = get_possible_answer_type(possible_answer)
+    if possible_answer_type is not None and type(value) == possible_answer_type:
+        result["is_variable"] = True
+        return result
+
+    result["valid"] = False
+    result["error"].append(
+        f"Incorrect type for parameter {repr(param)}. "
+        f"Expected type {expected_type_description}, got {type(value).__name__}. "
+        f"Parameter value: {repr(value)}."
+    )
+    result["error_type"] = "type_error:simple"
+    return result
+
+
+def standardize_string(input_string: str) -> str:
+    """Remove spaces/punctuation, lowercase, normalize single quotes to double."""
+    regex_string = r"[ \,\.\/\-\_\*\^]"
+    return re.sub(regex_string, "", input_string).lower().replace("'", '"')
+
+
+def string_checker(param: str, model_output: str, possible_answer: list):
+    """Case-insensitive string match; only standardizes str entries in possible_answer."""
+    standardized_possible_answer = []
+    standardized_model_output = standardize_string(model_output)
+    for answer in possible_answer:
+        if type(answer) == str:
+            standardized_possible_answer.append(standardize_string(answer))
+
+    if standardized_model_output not in standardized_possible_answer:
+        return {
+            "valid": False,
+            "error": [
+                f"Invalid value for parameter {repr(param)}: {repr(model_output)}. "
+                f"Expected one of {possible_answer}. Case insensitive."
+            ],
+            "error_type": "value_error:string",
+        }
+    return {"valid": True, "error": []}
+
+
+def list_checker(param: str, model_output: list, possible_answer: list):
+    """Check a list value against a list-of-lists of possible answers.
+
+    possible_answer must be a list of allowed lists, e.g. [[1, 2], [3, 4]].
+    String elements are standardized before comparison.
+    """
+    standardized_model_output = list(model_output)
+    for i in range(len(standardized_model_output)):
+        if type(standardized_model_output[i]) == str:
+            standardized_model_output[i] = standardize_string(model_output[i])
+
+    standardized_possible_answer = []
+    for i in range(len(possible_answer)):
+        standardized_possible_answer.append([])
+        for j in range(len(possible_answer[i])):
+            if type(possible_answer[i][j]) == str:
+                standardized_possible_answer[i].append(standardize_string(possible_answer[i][j]))
+            else:
+                standardized_possible_answer[i].append(possible_answer[i][j])
+
+    if standardized_model_output not in standardized_possible_answer:
+        return {
+            "valid": False,
+            "error": [
+                f"Invalid value for parameter {repr(param)}: {repr(model_output)}. "
+                f"Expected one of {possible_answer}."
+            ],
+            "error_type": "value_error:list/tuple",
+        }
+    return {"valid": True, "error": []}
+
+
+def dict_checker(param: str, model_output: dict, possible_answers: list):
+    """Check a dict value against a list of possible dict templates.
+
+    Each template maps key → list-of-allowed-values (or a scalar, which is
+    normalised to a single-element list internally). Succeeds if any template
+    matches completely.
+    """
+    result = {"valid": False, "error": [], "error_type": "dict_checker:unclear"}
+
+    for possible_answer in possible_answers:
+        if possible_answer == "":
+            continue
+
+        result = {"valid": False, "error": [], "error_type": "dict_checker:unclear"}
+        flag = True
+
+        # Normalize template values to lists so iteration is uniform
+        normalized = {
+            k: (v if isinstance(v, list) else [v])
+            for k, v in possible_answer.items()
+        }
+
+        for key, value in model_output.items():
+            if key not in normalized:
+                result["error"].append(f"Unexpected dict key parameter: '{key}'.")
+                result["error_type"] = "value_error:dict_key"
+                flag = False
+                break
+
+            standardize_value = standardize_string(value) if type(value) == str else value
+            standardized_allowed = [
+                standardize_string(a) if type(a) == str else a
+                for a in normalized[key]
+            ]
+
+            if standardize_value not in standardized_allowed:
+                result["error"].append(
+                    f"Invalid value for parameter {repr(key)}: {repr(value)}. "
+                    f"Expected one of {standardized_allowed}."
+                )
+                result["error_type"] = "value_error:dict_value"
+                flag = False
+                break
+
+        if flag:
+            for key, allowed in normalized.items():
+                if key not in model_output and "" not in allowed:
+                    result["error"].append(f"Missing dict key parameter: '{key}'.")
+                    result["error_type"] = "value_error:dict_key"
+                    flag = False
+                    break
+
+        if flag:
+            return {"valid": True, "error": []}
+
+    return result
+
+
+def list_dict_checker(param: str, model_output: list, possible_answers: list):
+    """Check an ordered list of dicts against a list of possible answer arrays.
+
+    possible_answers is a list of candidate arrays; each candidate array is a
+    list of dict templates (one per position). The order within each array must
+    match model_output exactly.
+    """
+    result = {"valid": False, "error": [], "error_type": "list_dict_checker:unclear"}
+
+    for answer_index in range(len(possible_answers)):
+        flag = True
+
+        if len(model_output) != len(possible_answers[answer_index]):
+            result = {
+                "valid": False,
+                "error": ["Wrong number of dictionaries in the list."],
+                "error_type": "value_error:list_dict_count",
+            }
+            flag = False
+            continue
+
+        for dict_index in range(len(model_output)):
+            result = dict_checker(
+                param,
+                model_output[dict_index],
+                [possible_answers[answer_index][dict_index]],
+            )
+            if not result["valid"]:
+                flag = False
+                break
+
+        if flag:
+            return {"valid": True, "error": []}
+
+    return result
+
 
 class BFCLMatchScore(Metrics):
     """BFCL function calling match score metric.
@@ -39,9 +284,21 @@ class BFCLMatchScore(Metrics):
             task_name: Optional[str] = None,
             model_name: Optional[str] = None,
             model_responses: Optional[List[ModelResponse]] = None,
+            test_category: Optional[str] = None,
     ) -> dict[str, dict[str, float] | float]:
+        # Derive test_category from task_name when not explicitly provided.
+        # BFCL task names embed the category (e.g. "…_parallel_…", "…_multiple_…").
+        if test_category is None and task_name is not None:
+            task_lower = task_name.lower()
+            if "parallel" in task_lower:
+                test_category = "parallel"
+            elif "multiple" in task_lower:
+                test_category = "multiple"
+            else:
+                test_category = "simple"
+
         # Compute record-level scores for strict outputs (binary: all instructions followed or not)
-        record_scores = self.compute_record_level_scores(candidates, references)
+        record_scores = self.compute_record_level_scores(candidates, references, test_category=test_category)
         # Average final score over all components
         results = {"final": util.smart_round((sum(record_scores) * 100.0) / len(candidates), 2) if candidates else 0.0}
 
@@ -66,156 +323,25 @@ class BFCLMatchScore(Metrics):
 
         return results
 
-    # ----------------- Helpers -----------------
+    # ----------------- Core compare logic -----------------
 
-    def _standardize_value(self, val):
-        if isinstance(val, str):
-            regex_string = r"[ \,\.\/\-\_\*\^]"
-            return re.sub(regex_string, "", val).lower().replace("'", '"')
-        elif callable(val):
-            return repr(val)
-        elif isinstance(val, list):
-            return [self._standardize_value(v) for v in val]
-        elif isinstance(val, dict):
-            return {k: self._standardize_value(v) for k, v in val.items()}
-        return val
+    def _compare_tool_call(self, tool_call, ref_call, tool_required_params):
+        """Compare one tool call against one reference call.
 
-    def _compare_dicts(self, tool_dict: dict, ref_dict: dict):
-        for k in tool_dict:
-            if k not in ref_dict:
-                return False, f"Unexpected dict key: {k}"
-        for k, allowed in ref_dict.items():
-            if k not in tool_dict and allowed not in ("", None):
-                return False, f"Missing dict key: {k}"
-        for k, v in tool_dict.items():
-            tv = self._standardize_value(v)
-            rv = self._standardize_value(ref_dict[k])
-            if isinstance(rv, list):
-                rv_std = [self._standardize_value(x) for x in rv]
-                if tv not in rv_std:
-                    return False, f"Dict value mismatch at '{k}': {tv} ∉ {rv_std}"
-            else:
-                if tv != rv:
-                    return False, f"Dict value mismatch at '{k}': {tv} != {rv}"
-        return True, ""
+        Implements the full original ast_checker logic:
+          - Function name normalisation (. → _)
+          - Unexpected / missing parameter detection
+          - Type checking with variable-reference detection
+          - Tuple → list normalisation (JSON loses tuple distinction)
+          - int → float coercion
+          - Specialised dispatch: dict_checker, list_dict_checker, string_checker, list_checker
+          - Fallback value-in-possible-answers check
 
-    def _compare_param_value(self, param, tool_value, ref_value, python_type):
-        """Compare a single parameter's value against its reference.
+        required_params entries may be 2-tuples (param, type_str) or 3-tuples
+        (param, type_str, nested_type_str) for array/tuple parameters.
 
         Returns (ok: bool, errors: list[str]).
         """
-        errors = []
-
-        # Empty/None means no constraint
-        if ref_value in ("", None):
-            return True, []
-
-        # Normalize numeric float/int
-        if python_type == float and isinstance(tool_value, int):
-            tool_value = float(tool_value)
-
-        # ---- dict parameter handling ----
-        if python_type == dict:
-            if isinstance(ref_value, dict):
-                ok, msg = self._compare_dicts(tool_value, ref_value)
-                if not ok:
-                    errors.append(msg)
-                    return False, errors
-            elif isinstance(ref_value, list):
-                # list of dict-templates: succeed if any template matches
-                dict_templates = [x for x in ref_value if isinstance(x, dict)]
-                if len(dict_templates) == len(ref_value) and dict_templates:
-                    matched_any = False
-                    last_msg = ""
-                    for tmpl in dict_templates:
-                        ok, msg = self._compare_dicts(tool_value, tmpl)
-                        if ok:
-                            matched_any = True
-                            break
-                        else:
-                            last_msg = msg
-                    if not matched_any:
-                        errors.append(
-                            f"Dict value for '{param}' did not match any allowed templates. Last error: {last_msg}"
-                        )
-                        return False, errors
-                else:
-                    # Fallback: treat as allowed list of whole dicts (exact match)
-                    if tool_value not in ref_value:
-                        errors.append(
-                            f"Value for '{param}' not in allowed list: {tool_value} ∉ {ref_value}"
-                        )
-                        return False, errors
-            else:
-                errors.append(
-                    f"Type mismatch for '{param}': expected dict semantics, got {type(ref_value).__name__} in reference"
-                )
-                return False, errors
-
-        elif python_type == list:
-            if isinstance(ref_value, list):
-                # Case: list of possible lists (list-of-lists)
-                if all(isinstance(x, list) for x in ref_value):
-                    matched_any = False
-                    last_msg = ""
-                    for candidate_list in ref_value:
-                        if len(tool_value) != len(candidate_list):
-                            continue
-                        elementwise_ok = True
-                        for tv, rv in zip(tool_value, candidate_list):
-                            if isinstance(rv, dict) and isinstance(tv, dict):
-                                ok, msg = self._compare_dicts(tv, rv)
-                                if not ok:
-                                    elementwise_ok = False
-                                    last_msg = msg
-                                    break
-                            else:
-                                if tv != rv:
-                                    elementwise_ok = False
-                                    last_msg = f"List element mismatch: {tv} != {rv}"
-                                    break
-                        if elementwise_ok:
-                            matched_any = True
-                            break
-                    if not matched_any:
-                        errors.append(
-                            f"List value for '{param}' did not match any allowed options. Last error: {last_msg}"
-                        )
-                        return False, errors
-                else:
-                    # Simple allowed-values check
-                    if tool_value not in ref_value:
-                        errors.append(
-                            f"Value for '{param}' not in allowed list: {tool_value} ∉ {ref_value}"
-                        )
-                        return False, errors
-            else:
-                if tool_value != ref_value:
-                    errors.append(
-                        f"Mismatch for '{param}': {tool_value} != {ref_value}"
-                    )
-                    return False, errors
-
-        else:
-            # ---- Scalar types: string, integer, float, boolean, any ----
-            if isinstance(ref_value, list):
-                # ref_value is a list of allowed values
-                if tool_value not in ref_value:
-                    errors.append(
-                        f"Invalid value for '{param}': {tool_value!r}. Expected one of {ref_value}."
-                    )
-                    return False, errors
-            else:
-                if tool_value != ref_value:
-                    errors.append(
-                        f"Value mismatch for '{param}': {tool_value!r} != {ref_value!r}"
-                    )
-                    return False, errors
-
-        return True, []
-
-    def _compare_tool_call(self, tool_call, ref_call, tool_required_params):
-        """Compare one tool call against its reference."""
         if not isinstance(tool_call, dict) or not isinstance(ref_call, dict):
             return False, ["Tool/Reference call is not a dict."]
 
@@ -226,88 +352,159 @@ class BFCLMatchScore(Metrics):
             return False, [f"Function name mismatch: {tool_name} vs {ref_tool_name}"]
 
         tool_params = tool_call[tool_name]
-        ref_params = ref_call[ref_tool_name]
+        ref_params_raw = ref_call[ref_tool_name]
+
+        # Normalize: reference parameter values must always be lists of allowed values,
+        # matching the original possible_answer[param] contract.
+        ref_params = {
+            k: (v if isinstance(v, list) else [v])
+            for k, v in ref_params_raw.items()
+        }
+
+        required_params = (
+            tool_required_params.get(tool_name)
+            or tool_required_params.get(ref_tool_name)
+        )
+        if required_params is None:
+            return False, [f"Missing required-params metadata for tool '{tool_name}'"]
+
+        # Build type map: param → (type_str, nested_type_str | None)
+        # Entries are 2-tuples (param, type), 3-tuples (param, type, nested_type),
+        # or 4-tuples (param, type, nested_type, is_required) from the preprocessor.
+        required_params_type_map = {}
+        for item in required_params:
+            required_params_type_map[item[0]] = (item[1], item[2] if len(item) > 2 else None)
 
         # --- Reject unexpected top-level parameters ---
         for k in tool_params:
             if k not in ref_params:
                 return False, [f"Unexpected parameter: {k}"]
 
-        required_params = tool_required_params.get(tool_name) or tool_required_params.get(
-            ref_tool_name
-        )
-        if required_params is None:
-            return False, [f"Missing required-params metadata for tool '{tool_name}'"]
+        # --- Require all required parameters (skip optional ones) ---
+        for item in required_params:
+            is_required = item[3] if len(item) > 3 else True  # default True for legacy 2/3-tuples
+            if is_required and item[0] not in tool_params:
+                return False, [f"Missing required parameter '{item[0]}'."]
 
-        # Build a lookup from required_params for type info
-        required_params_type_map = {p: t for p, t in required_params}
-
-        all_match = True
         errors = []
+        all_match = True
 
-        # --- 1. Check all required parameters are present ---
-        for param, param_type in required_params:
-            if param not in tool_params:
-                errors.append(f"Missing required parameter '{param}'.")
-                all_match = False
-                return all_match, errors
-
-        # --- 2. Validate every parameter the model provided ---
+        # --- Validate every parameter the model provided ---
         for param, tool_raw_value in tool_params.items():
             if param not in ref_params:
-                # Already caught above in the unexpected-params check, but be safe
                 errors.append(f"Unexpected parameter: {param}")
                 all_match = False
                 continue
 
-            # Determine the type: use required_params metadata if available,
-            # otherwise infer from the reference value
+            # Determine expected type
             if param in required_params_type_map:
-                param_type = required_params_type_map[param]
+                param_type, nested_param_type = required_params_type_map[param]
             else:
-                # Optional parameter not in required_params — infer type from value
-                ref_raw = ref_params[param]
-                if isinstance(ref_raw, dict):
-                    param_type = "dict"
-                elif isinstance(ref_raw, list):
-                    param_type = "array"
-                elif isinstance(ref_raw, bool):
-                    param_type = "boolean"
-                elif isinstance(ref_raw, int):
-                    param_type = "integer"
-                elif isinstance(ref_raw, float):
-                    param_type = "float"
+                # Optional param not in required_params — infer from first non-empty ref value
+                first_val = next(
+                    (v for v in ref_params[param] if v not in ("", None)), None
+                )
+                if isinstance(first_val, dict):
+                    param_type, nested_param_type = "dict", None
+                elif isinstance(first_val, list):
+                    param_type, nested_param_type = "array", None
+                elif isinstance(first_val, bool):
+                    param_type, nested_param_type = "boolean", None
+                elif isinstance(first_val, int):
+                    param_type, nested_param_type = "integer", None
+                elif isinstance(first_val, float):
+                    param_type, nested_param_type = "float", None
                 else:
-                    param_type = "string"
+                    param_type, nested_param_type = "string", None
 
-            python_type = PYTHON_TYPE_MAPPING.get(param_type, str)
+            expected_type_converted = PYTHON_TYPE_MAPPING.get(param_type, str)
+            nested_type_converted = (
+                PYTHON_TYPE_MAPPING.get(nested_param_type) if nested_param_type else None
+            )
 
-            tool_value = self._standardize_value(tool_raw_value)
-            ref_value = self._standardize_value(ref_params[param])
+            value = tool_raw_value
+            possible_answer = ref_params[param]  # always a list
 
-            ok, param_errors = self._compare_param_value(param, tool_value, ref_value, python_type)
-            if not ok:
-                errors.extend(param_errors)
+            # Tuple → list: JSON serialisation collapses tuples into lists,
+            # so we normalise the model output the same way.
+            if param_type == "tuple" and isinstance(value, tuple):
+                value = list(value)
+
+            # Allow Python's implicit int → float promotion
+            if param_type == "float" and isinstance(value, int):
+                value = float(value)
+
+            # --- Type check + variable-reference detection ---
+            type_check_result = type_checker(
+                param,
+                value,
+                possible_answer,
+                param_type,
+                expected_type_converted,
+                nested_type_converted,
+            )
+            is_variable = type_check_result["is_variable"]
+            if not type_check_result["valid"]:
+                errors.extend(type_check_result["error"])
+                all_match = False
+                continue
+
+            # If model returned a variable reference, skip specialized value checks
+            if not is_variable:
+                if expected_type_converted == dict:
+                    # possible_answer is a list of dict templates
+                    result = dict_checker(param, value, possible_answer)
+                    if not result["valid"]:
+                        errors.extend(result["error"])
+                        all_match = False
+                    continue
+
+                elif expected_type_converted == list and nested_type_converted == dict:
+                    # possible_answer is a list of possible answer-arrays (list-of-lists-of-dicts)
+                    # If it's a flat list of dicts, wrap it as a single possible answer.
+                    pa = possible_answer
+                    if pa and not isinstance(pa[0], list):
+                        pa = [pa]
+                    result = list_dict_checker(param, value, pa)
+                    if not result["valid"]:
+                        errors.extend(result["error"])
+                        all_match = False
+                    continue
+
+                elif expected_type_converted == str:
+                    result = string_checker(param, value, possible_answer)
+                    if not result["valid"]:
+                        errors.extend(result["error"])
+                        all_match = False
+                    continue
+
+                elif expected_type_converted == list:
+                    # possible_answer is a list of possible lists.
+                    # If it's a flat list (single possible answer), wrap it.
+                    pa = possible_answer
+                    if not all(isinstance(x, list) for x in pa):
+                        pa = [pa]
+                    result = list_checker(param, value, pa)
+                    if not result["valid"]:
+                        errors.extend(result["error"])
+                        all_match = False
+                    continue
+
+            # Fallback: value must appear in the list of allowed values
+            if value not in possible_answer:
+                errors.append(
+                    f"Invalid value for parameter {repr(param)}: {repr(value)}. "
+                    f"Expected one of {possible_answer}."
+                )
                 all_match = False
 
-        # --- 3. Check for missing optional parameters that are NOT marked optional ---
-        # In BFCL, a reference value of "" or None means the parameter is truly
-        # optional (no constraint). If the reference has a non-empty value but the
-        # model omitted it, that's an error.
-        for param, ref_raw_value in ref_params.items():
-            if param not in tool_params:
-                # Already covered if it's a required param (checked above).
-                # For optional params: reject only if reference has a real constraint.
-                standardized = self._standardize_value(ref_raw_value)
-                is_optional_marker = standardized in ("", None)
-                # Also treat a list containing "" as optional
-                if isinstance(standardized, list) and "" in [self._standardize_value(v) for v in ref_raw_value]:
-                    is_optional_marker = True
-                if not is_optional_marker:
-                    errors.append(
-                        f"Missing parameter '{param}' which has expected value in ground truth."
-                    )
-                    all_match = False
+        # --- Check optional params that have a non-empty expected value ---
+        for param, possible_answer in ref_params.items():
+            if param not in tool_params and "" not in possible_answer:
+                errors.append(
+                    f"Optional parameter {repr(param)} not provided and not marked as optional."
+                )
+                all_match = False
 
         return all_match, errors
 
@@ -319,70 +516,90 @@ class BFCLMatchScore(Metrics):
         references: List[
             Tuple[List[Dict[str, dict]], Dict[str, List[Tuple[str, str]]]]
         ],
+        test_category: Optional[str] = None,
     ) -> List[dict]:
+        """Evaluate each candidate against its reference, routing by test_category:
 
+        - "multiple" : ordered check — only model_output[0] is checked against reference[0].
+        - "parallel" / "simple" / "irrelevance" : order-insensitive N-to-N matching.
+          (The count check len(tool_response) != len(reference_tool_response) applies to all.)
+        """
         outputs = []
+
+        is_multiple = test_category is not None and "multiple" in test_category
 
         for i, candidate in enumerate(candidates):
             tool_response = candidate.get("tool_response")
             reference_tool_response, tool_required_params = references[i]
 
             if tool_response is None:
-                outputs.append(
-                    {
-                        "valid": False,
-                        "results": [False],
-                        "errors": ["tool_response is None."],
-                    }
-                )
+                outputs.append({
+                    "valid": False,
+                    "results": [False],
+                    "errors": ["tool_response is None."],
+                })
                 continue
 
             if len(tool_response) != len(reference_tool_response):
-                outputs.append(
-                    {
-                        "valid": False,
-                        "results": [False],
-                        "errors": [
-                            f"Wrong number of tool calls: got {len(tool_response)}, expected {len(reference_tool_response)}."
-                        ],
-                        "tool_response": str(tool_response),
-                        "reference_tool_response": str(reference_tool_response),
-                        "tool_required_params": str(tool_required_params)
-                    }
-                )
+                outputs.append({
+                    "valid": False,
+                    "results": [False],
+                    "errors": [
+                        f"Wrong number of tool calls: got {len(tool_response)}, "
+                        f"expected {len(reference_tool_response)}."
+                    ],
+                    "tool_response": str(tool_response),
+                    "reference_tool_response": str(reference_tool_response),
+                    "tool_required_params": str(tool_required_params),
+                })
                 continue
 
-            if len(tool_response) == 0 and len(reference_tool_response) == 0:
+            if len(tool_response) == 0:
                 outputs.append({"valid": True, "results": [True], "errors": []})
                 continue
 
-            unmatched_refs = reference_tool_response[:]
             try:
-                unmatched_cands = tool_response[:]
-                results, errors = [], []
+                if is_multiple:
+                    # "multiple": ordered check — only verify position 0 against position 0
+                    ok, err = self._compare_tool_call(
+                        tool_response[0], reference_tool_response[0], tool_required_params
+                    )
+                    results = [ok]
+                    errors = err if not ok else []
+                else:
+                    # "parallel" / "simple": order-insensitive matching
+                    unmatched_cands = tool_response[:]
+                    results, errors = [], []
 
-                for ref_call in unmatched_refs:
-                    matched = False
-                    for j, cand_call in enumerate(unmatched_cands):
-                        ok, err = self._compare_tool_call(
-                            cand_call, ref_call, tool_required_params
-                        )
-                        if ok:
-                            results.append(True)
-                            unmatched_cands.pop(j)
-                            matched = True
-                            break
-                    if not matched:
-                        results.append(False)
-                        errors.append(f"Could not find match for reference call: {ref_call}")
+                    for ref_call in reference_tool_response:
+                        matched = False
+                        for j, cand_call in enumerate(unmatched_cands):
+                            ok, err = self._compare_tool_call(
+                                cand_call, ref_call, tool_required_params
+                            )
+                            if ok:
+                                results.append(True)
+                                unmatched_cands.pop(j)
+                                matched = True
+                                break
+                        if not matched:
+                            results.append(False)
+                            errors.append(
+                                f"Could not find match for reference call: {ref_call}"
+                            )
+
             except Exception as e:
-                outputs.append({"valid": False, "results": [False], "errors": [e]})
+                outputs.append({"valid": False, "results": [False], "errors": [str(e)]})
+                continue
 
-            outputs.append(
-                {"valid": all(results), "results": results, "errors": errors, "tool_response": str(tool_response),
-                 "reference_tool_response": str(reference_tool_response),
-                 "tool_required_params": str(tool_required_params)}
-            )
+            outputs.append({
+                "valid": all(results),
+                "results": results,
+                "errors": errors,
+                "tool_response": str(tool_response),
+                "reference_tool_response": str(reference_tool_response),
+                "tool_required_params": str(tool_required_params),
+            })
 
         return outputs
 
@@ -390,6 +607,7 @@ class BFCLMatchScore(Metrics):
             self,
             candidates: List[str],
             references: List[Tuple[List[str], List[Dict[str, Optional[Union[str, int]]]]]],
+            test_category: Optional[str] = None,
     ) -> List[float]:
-        outputs = self._compute_outputs(candidates, references)
+        outputs = self._compute_outputs(candidates, references, test_category=test_category)
         return [float(out["valid"]) for out in outputs]
