@@ -1,0 +1,17 @@
+# Base configuration for VoiceBench IFEval tasks
+language: en
+split: test
+preprocessor: GeneralPreprocessor
+postprocessor: GeneralPostprocessor
+target_column: answer
+long_audio_processing_logic: truncate
+# Prompt from https://artificialanalysis.ai/methodology/intelligence-benchmarking
+user_prompt: >
+  Answer the following multiple choice question. The last line of your response should be in the following format: 'Answer: A/B/C/D' (e.g. 'Answer: A'). 
+
+generation_kwargs:
+  temperature: 0.001
+  max_completion_tokens: 2048
+
+metrics:
+  - metric: multiple_choice_accuracy

@@ -1,0 +1,6 @@
+task_name: gpqa_diamond_audio
+dataset_path: ServiceNow-AI/gpqa_audio
+split: test
+extends: ["./base.yaml#"]
+modality: audio
+audio_column: audio
