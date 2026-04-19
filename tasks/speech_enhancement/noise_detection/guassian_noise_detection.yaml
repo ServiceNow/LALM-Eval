@@ -1,0 +1,19 @@
+task_name: noise_detection
+dataset_path: DynamicSuperb/NoiseDetection_LJSpeech_MUSAN-Gaussian
+modality: audio
+language: en
+split: test
+preprocessor: GeneralPreprocessor
+postprocessor: GeneralPostprocessor
+audio_column: audio
+target_column: label
+instruction_column: instruction
+long_audio_processing_logic: truncate
+
+generation_kwargs:
+  temperature: 0.0001
+  max_completion_tokens: 64
+
+metrics:
+  - metric: llm_judge_binary
+  - metric: detailed_judge_prompt

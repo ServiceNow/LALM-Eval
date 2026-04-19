@@ -1,0 +1,21 @@
+# Demonstrating how to run Librispeech ASR task on Phi-4 multimodal vLLM endpoint which has the speech adapter registered and loaded.
+
+task_metric: # task/group and metric
+  - ["librispeech_test_clean", "word_error_rate"]
+
+prompt_overrides:
+  user_prompt:
+    - task: "librispeech_test_clean"
+      prompt: "Transcribe the audio clip into text." # This is the official prompt by Phi-4 to reproduce their ASR results.
+
+models:
+  - name: "phi4-multimodal-deployment0" # mandatory - must be unique
+    inference_type: "vllm" # mandatory - you can use vllm(vllm), openai(openai), (chat completion) or audio transcription endpoint(transcription)
+    url: "http://<vLLM end-point URL>:<port>/v1"  # mandatory - endpoint url
+    auth_token: "???"
+    delay: 300
+    retry_attempts: 3
+    timeout: 300
+    model: "speech_lora" # Since Phi-4 uses LoRA adapters for speech, specify the adapter name here.
+    batch_size: 100 # Optional - batch eval size
+    chunk_size: 30 # Optional - max audio length in seconds fed to model

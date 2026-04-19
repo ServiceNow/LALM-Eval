@@ -1,0 +1,4 @@
+task_name: spokenwoz_text
+extends: ["./base.yaml#"]
+split: test
+modality: text

@@ -44,7 +44,7 @@ def main(cfg_path='config.yaml'):
         raise
 
     # 4. Load models and initialize central request controller
-    central_request_controller, model_configs = register_models_with_controller(run_config.get("models", []), run_config.get("judge_properties", {}))
+    central_request_controller, model_configs = register_models_with_controller(run_config.get("models", []), run_config.get("judge_settings", {}))
 
     # 5. Expand task-metric pairs
     task_payload = expand_task_metric_pairs(run_config, task_configs, task_ancestry)

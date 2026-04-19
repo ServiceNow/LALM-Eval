@@ -664,6 +664,29 @@ class MtbenchLLMJudgeMetric(_BaseLLMJudge):
         logger.error("All %d attempts failed for this sample. Skipping.", max_retries)
         return 0.0
 
+    def _build_conversation_history(self, instructions: list, responses: list, up_to_turn: int, use_references: bool = False) -> str:
+        """Build formatted conversation history for judge prompt.
+        
+        Args:
+            instructions: List of user instructions/questions for all turns
+            responses: List of assistant responses or reference answers for all turns
+            up_to_turn: Build history up to (but not including) this turn index
+            use_references: If True, format as reference answers; if False, format as assistant responses
+            
+        Returns:
+            Formatted conversation history string
+        """
+        if up_to_turn == 0:
+            return "(No previous conversation)"
+        
+        history = []
+        response_label = "Reference answer" if use_references else "Assistant A"
+        for i in range(up_to_turn):
+            history.append(f"### User (Turn {i + 1}):\n{instructions[i]}")
+            resp = responses[i] if responses and i < len(responses) else ""
+            history.append(f"### {response_label} (Turn {i + 1}):\n{resp}")
+        return "\n\n".join(history)
+
     async def _judge_all(
             self,
             candidates: list[str],
@@ -688,23 +711,15 @@ class MtbenchLLMJudgeMetric(_BaseLLMJudge):
         results = [None] * len(candidates)
         sys_prompt_template = _get_prompt(self._prompt_key)
 
-        # Extract prompt variants
-        reference_turn1_sys_prompt = sys_prompt_template.get(
-            'judge', {}).get('reference_turn1', {}).get('system', {}).get('en')
-        reference_turn1_user_prompt = sys_prompt_template.get(
-            'judge', {}).get('reference_turn1', {}).get('user', {}).get('en')
-        no_reference_turn1_sys_prompt = sys_prompt_template.get(
-            'judge', {}).get('no_reference_turn1', {}).get('system', {}).get('en')
-        no_reference_turn1_user_prompt = sys_prompt_template.get(
-            'judge', {}).get('no_reference_turn1', {}).get('user', {}).get('en')
-        reference_turn2_sys_prompt = sys_prompt_template.get(
-            'judge', {}).get('reference_turn2', {}).get('system', {}).get('en')
-        reference_turn2_user_prompt = sys_prompt_template.get(
-            'judge', {}).get('reference_turn2', {}).get('user', {}).get('en')
-        no_reference_turn2_sys_prompt = sys_prompt_template.get(
-            'judge', {}).get('no_reference_turn2', {}).get('system', {}).get('en')
-        no_reference_turn2_user_prompt = sys_prompt_template.get(
-            'judge', {}).get('no_reference_turn2', {}).get('user', {}).get('en')
+        # Extract N-turn prompt templates (generalized for any number of turns)
+        reference_turn_n_sys_prompt = sys_prompt_template.get(
+            'judge', {}).get('reference_turn_n', {}).get('system', {}).get('en')
+        reference_turn_n_user_prompt = sys_prompt_template.get(
+            'judge', {}).get('reference_turn_n', {}).get('user', {}).get('en')
+        no_reference_turn_n_sys_prompt = sys_prompt_template.get(
+            'judge', {}).get('no_reference_turn_n', {}).get('system', {}).get('en')
+        no_reference_turn_n_user_prompt = sys_prompt_template.get(
+            'judge', {}).get('no_reference_turn_n', {}).get('user', {}).get('en')
 
         # Generate unique evaluator instance ID
         evaluator_id = f"llm_judge_{self._prompt_key}_{id(self)}"
@@ -760,63 +775,61 @@ class MtbenchLLMJudgeMetric(_BaseLLMJudge):
             category = cand['category']
             assert isinstance(instructions, list)
 
+            # Select appropriate prompt templates based on category
             if category in self.NEED_REF_CATS:
-                turn1_sys_prompt = reference_turn1_sys_prompt
-                turn1_user_prompt = reference_turn1_user_prompt
-                turn2_sys_prompt = reference_turn2_sys_prompt
-                turn2_user_prompt = reference_turn2_user_prompt
+                sys_prompt_template = reference_turn_n_sys_prompt
+                user_prompt_template = reference_turn_n_user_prompt
             else:
-                turn1_sys_prompt = no_reference_turn1_sys_prompt
-                turn1_user_prompt = no_reference_turn1_user_prompt
-                turn2_sys_prompt = no_reference_turn2_sys_prompt
-                turn2_user_prompt = no_reference_turn2_user_prompt
+                sys_prompt_template = no_reference_turn_n_sys_prompt
+                user_prompt_template = no_reference_turn_n_user_prompt
+
             try:
-                result = {"turn1": 0.0, "turn2": 0.0, "overall": 0.0}
-                if isinstance(responses, str) or responses is None:
+                # Dynamic result dict for N turns
+                # Use min of instructions and responses to handle mismatched lengths
+                num_turns = min(len(instructions), len(responses)) if responses and not isinstance(responses, str) else len(instructions)
+                result = {f"turn{i + 1}": 0.0 for i in range(num_turns)}
+                result["overall"] = 0.0
+                
+                if isinstance(responses, str) or responses is None or len(responses) == 0:
                     return idx, result
 
-                for turn in range(len(instructions)):
-                    sys_prompt = turn1_sys_prompt if turn == 0 else turn2_sys_prompt
-                    user_prompt = turn1_user_prompt if turn == 0 else turn2_user_prompt
+                # Process each turn dynamically
+                for turn in range(num_turns):
+                    # Build conversation history up to current turn
+                    conversation_history = self._build_conversation_history(
+                        instructions, responses, up_to_turn=turn
+                    )
+                    
+                    # Format user prompt with N-turn template
                     if category in self.NEED_REF_CATS:
-                        if turn == 0:
-                            user_prompt = user_prompt.format(
-                                question1=instructions[0],
-                                reference1=targets[0],
-                                q1_generated=responses[0]
-                            )
-                        else:
-                            user_prompt = user_prompt.format(
-                                question1=instructions[0],
-                                reference1=targets[0],
-                                q1_generated=responses[0],
-                                question2=instructions[1],
-                                reference2=targets[1],
-                                q2_generated=responses[1]
-                            )
+                        # Build reference history for reference-based categories
+                        conversation_history_with_references = self._build_conversation_history(
+                            instructions, targets, up_to_turn=turn, use_references=True
+                        )
+                        current_reference = targets[turn] if targets and turn < len(targets) else ""
+                        user_prompt = user_prompt_template.format(
+                            conversation_history=conversation_history,
+                            conversation_history_with_references=conversation_history_with_references,
+                            current_question=instructions[turn],
+                            current_reference=current_reference,
+                            current_response=responses[turn],
+                            turn_number=turn + 1
+                        )
                     else:
-                        if turn == 0:
-                            user_prompt = user_prompt.format(
-                                question1=instructions[0],
-                                q1_generated=responses[0]
-                            )
-                        else:
-                            user_prompt = user_prompt.format(
-                                question1=instructions[0],
-                                q1_generated=responses[0],
-                                question2=instructions[1],
-                                q2_generated=responses[1]
-                            )
+                        user_prompt = user_prompt_template.format(
+                            conversation_history=conversation_history,
+                            current_question=instructions[turn],
+                            current_response=responses[turn],
+                            turn_number=turn + 1
+                        )
 
                     # Call the scoring function
-                    rating = await self._score_once(sys_prompt, user_prompt)
-                    if turn == 0:
-                        result['turn1'] = rating
-                    else:
-                        result['turn2'] = rating
+                    rating = await self._score_once(sys_prompt_template, user_prompt)
+                    result[f'turn{turn + 1}'] = rating
 
-                # Switching scoring from [0,10] to [0,100]
-                result['overall'] = util.smart_round((result['turn1'] + result['turn2']) * 10 / 2.0, 2) 
+                # Compute overall score as average of all turns, scaled to [0, 100]
+                turn_scores = [result[f'turn{i + 1}'] for i in range(num_turns)]
+                result['overall'] = util.smart_round(sum(turn_scores) * 10 / len(turn_scores), 2) if turn_scores else 0.0 
                 # Move from processing to completed
                 processing_samples.remove(idx)
                 completed_samples.add(idx)

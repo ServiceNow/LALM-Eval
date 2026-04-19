@@ -423,6 +423,13 @@ class Engine:
                                 metric, outs, model_targets, source_sentences,
                                 instructions=instructions, task_name=self.task_name, model_name=model_name, model_responses=model_responses
                             )
+                        elif metric_name in ('joint_goal_accuracy', 'slot_accuracy', 'slot_f1'):
+                            ground_truth_slots = process_result.get("ground_truth_slots", [])
+                            result = await asyncio.to_thread(
+                                metric, outs, model_targets,
+                                instructions=instructions, task_name=self.task_name, model_name=model_name, 
+                                model_responses=model_responses, ground_truth_slots=ground_truth_slots
+                            )
                         else:
                             result = await asyncio.to_thread(
                                 metric, outs, model_targets,

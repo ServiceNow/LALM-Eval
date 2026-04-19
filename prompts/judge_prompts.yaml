@@ -123,176 +123,95 @@ Sample-model_binary_judge_prompt: |-
 
 mt_bench:
   judge:
-    reference_turn1:
-      system:
-        en: You are a helpful assistant.
-        default: You are a helpful assistant.
-      user:
-        en: |
-          [Instruction]
-          Please act as an impartial judge and evaluate the quality of the response provided by an AI assistant to the user question displayed below. Your evaluation should consider correctness and helpfulness. You will be given a reference answer and the assistant's answer. Begin your evaluation by comparing the assistant's answer with the reference answer. Identify and correct any mistakes. Be as objective as possible. After providing your explanation, you must rate the response on a scale of 1 to 10 by strictly following this format: "[[rating]]", for example: "Rating: [[5]]".
-
-          [Question]
-          {question1}
-
-          [The Start of Reference Answer]
-          {reference1}
-          [The End of Reference Answer]
-
-          [The Start of Assistant's Answer]
-          {q1_generated}
-          [The End of Assistant's Answer]
-        default: |
-          [Instruction]
-          Please act as an impartial judge and evaluate the quality of the response provided by an AI assistant to the user question displayed below. Your evaluation should consider correctness and helpfulness. You will be given a reference answer and the assistant's answer. The question and the reference answer are provided in {{lang}}. Also, make sure that the assistant responses are in {{lang}}. Begin your evaluation by comparing the assistant's answer with the reference answer. Identify and correct any mistakes. Be as objective as possible. After providing your explanation, you must rate the response on a scale of 1 to 10 by strictly following this format: "[[rating]]", for example: "Rating: [[5]]".
-
-          [Question]
-          {question1}
-
-          [The Start of Reference Answer]
-          {reference1}
-          [The End of Reference Answer]
-
-          [The Start of Assistant's Answer]
-          {q1_generated}
-          [The End of Assistant's Answer]
-
-    no_reference_turn1:
-      system:
-        en: You are a helpful assistant.
-        default: You are a helpful assistant.
-      user:
-        en: |
-          [Instruction]
-          Please act as an impartial judge and evaluate the quality of the response provided by an AI assistant to the user question displayed below. Your evaluation should consider factors such as the helpfulness, relevance, accuracy, depth, creativity, and level of detail of the response. Begin your evaluation by providing a short explanation. Be as objective as possible. After providing your explanation, you must rate the response on a scale of 1 to 10 by strictly following this format: "[[rating]]", for example: "Rating: [[5]]".
-    
-          [Question]
-          {question1}
-    
-          [The Start of Assistant's Answer]
-          {q1_generated}
-          [The End of Assistant's Answer]
-        default: |
-          [Instruction]
-          Please act as an impartial judge and evaluate the quality of the response provided by an AI assistant to the user question displayed below. The question provided is in {{lang}}. Your evaluation should consider factors such as the helpfulness, relevance, accuracy, depth, creativity, and level of detail of the response. Also, make sure that the assistant responses are in {{lang}}. Begin your evaluation by providing a short explanation. Be as objective as possible. After providing your explanation, you must rate the response on a scale of 1 to 10 by strictly following this format: "[[rating]]", for example: "Rating: [[5]]".
-            
-          [Question]
-          {question1}
-          
-          [The Start of Assistant's Answer]
-          {q1_generated}
-          [The End of Assistant's Answer]
-
-    reference_turn2:
+    # N-turn templates for general multi-turn evaluation
+    # These templates use {conversation_history}, {current_question}, {current_response}, 
+    # {current_reference}, and {turn_number} placeholders
+    reference_turn_n:
       system:
         en: |
-          Please act as an impartial judge and evaluate the quality of the response provided by an AI assistant to the user question. Your evaluation should consider correctness and helpfulness. You will be given a reference answer and the assistant's answer. You evaluation should focus on the assistant's answer to the second question. Begin your evaluation by comparing the assistant's answer with the reference answer. Identify and correct any mistakes. Be as objective as possible. After providing your explanation, you must rate the response on a scale of 1 to 10 by strictly following this format: "[[rating]]", for example: "Rating: [[5]]".
+          Please act as an impartial judge and evaluate the quality of the response provided by an AI assistant to the user question. Your evaluation should consider correctness and helpfulness. You will be given a reference answer and the assistant's answer. Your evaluation should focus on the assistant's answer to turn {turn_number}. Begin your evaluation by comparing the assistant's answer with the reference answer. Identify and correct any mistakes. Be as objective as possible. After providing your explanation, you must rate the response on a scale of 1 to 10 by strictly following this format: "[[rating]]", for example: "Rating: [[5]]".
         default: |
-          Please act as an impartial judge and evaluate the quality of the response provided by an AI assistant to the user question. Your evaluation should consider correctness and helpfulness. The question and the reference answer are provided in {{lang}}. You will be given a reference answer and the assistant's answer. You evaluation should focus on the assistant's answer to the second question. Also, make sure that the assistant responses are in {{lang}}. Begin your evaluation by comparing the assistant's answer with the reference answer. Identify and correct any mistakes. Be as objective as possible. After providing your explanation, you must rate the response on a scale of 1 to 10 by strictly following this format: "[[rating]]", for example: "Rating: [[5]]".
+          Please act as an impartial judge and evaluate the quality of the response provided by an AI assistant to the user question. Your evaluation should consider correctness and helpfulness. The question and the reference answer are provided in {{lang}}. You will be given a reference answer and the assistant's answer. Your evaluation should focus on the assistant's answer to turn {turn_number}. Also, make sure that the assistant responses are in {{lang}}. Begin your evaluation by comparing the assistant's answer with the reference answer. Identify and correct any mistakes. Be as objective as possible. After providing your explanation, you must rate the response on a scale of 1 to 10 by strictly following this format: "[[rating]]", for example: "Rating: [[5]]".
       user:
         en: |
           <|The Start of Reference Answer|>
-    
-          ### User:
-          {question1}
-    
-          ### Reference answer:
-          {reference1}
-    
-          ### User:
-          {question2}
-    
-          ### Reference answer:
-          {reference2}
-    
+
+          {conversation_history_with_references}
+
+          ### User (Turn {turn_number}):
+          {current_question}
+
+          ### Reference answer (Turn {turn_number}):
+          {current_reference}
+
           <|The End of Reference Answer|>
-    
-    
+
+
           <|The Start of Assistant A's Conversation with User|>
-    
-          ### User:
-          {question1}
-    
-          ### Assistant A:
-          {q1_generated}
-    
-          ### User:
-          {question2}
-    
-          ### Assistant A:
-          {q2_generated}
-    
+
+          {conversation_history}
+
+          ### User (Turn {turn_number}):
+          {current_question}
+
+          ### Assistant A (Turn {turn_number}):
+          {current_response}
+
           <|The End of Assistant A's Conversation with User|>
         default: |
           <|The Start of Reference Answer|>
-    
-          ### User:
-          {question1}
-          
-          ### Reference answer:
-          {reference1}
-          
-          ### User:
-          {question2}
-          
-          ### Reference answer:
-          {reference2}
-          
+
+          {conversation_history_with_references}
+
+          ### User (Turn {turn_number}):
+          {current_question}
+
+          ### Reference answer (Turn {turn_number}):
+          {current_reference}
+
           <|The End of Reference Answer|>
-          
-          
+
+
           <|The Start of Assistant A's Conversation with User|>
-          
-          ### User:
-          {question1}
-          
-          ### Assistant A:
-          {q1_generated}
-          
-          ### User:
-          {question2}
-          
-          ### Assistant A:
-          {q2_generated}
-          
+
+          {conversation_history}
+
+          ### User (Turn {turn_number}):
+          {current_question}
+
+          ### Assistant A (Turn {turn_number}):
+          {current_response}
+
           <|The End of Assistant A's Conversation with User|>
 
-    no_reference_turn2:
+    no_reference_turn_n:
       system:
         en: |
-          Please act as an impartial judge and evaluate the quality of the response provided by an AI assistant to the user question displayed below. Your evaluation should consider factors such as the helpfulness, relevance, accuracy, depth, creativity, and level of detail of the response. You evaluation should focus on the assistant's answer to the second user question. Begin your evaluation by providing a short explanation. Be as objective as possible. After providing your explanation, you must rate the response on a scale of 1 to 10 by strictly following this format: "[[rating]]", for example: "Rating: [[5]]".
+          Please act as an impartial judge and evaluate the quality of the response provided by an AI assistant to the user question displayed below. Your evaluation should consider factors such as the helpfulness, relevance, accuracy, depth, creativity, and level of detail of the response. Your evaluation should focus on the assistant's answer to turn {turn_number}. Begin your evaluation by providing a short explanation. Be as objective as possible. After providing your explanation, you must rate the response on a scale of 1 to 10 by strictly following this format: "[[rating]]", for example: "Rating: [[5]]".
         default: |
-          Please act as an impartial judge and evaluate the quality of the response provided by an AI assistant to the user question displayed below. The question provided is in {{lang}}. Your evaluation should consider factors such as the helpfulness, relevance, accuracy, depth, creativity, and level of detail of the response. You evaluation should focus on the assistant's answer to the second user question. Also, make sure that the assistant responses are in {{lang}}. Begin your evaluation by providing a short explanation. Be as objective as possible. After providing your explanation, you must rate the response on a scale of 1 to 10 by strictly following this format: "[[rating]]", for example: "Rating: [[5]]".
+          Please act as an impartial judge and evaluate the quality of the response provided by an AI assistant to the user question displayed below. The question provided is in {{lang}}. Your evaluation should consider factors such as the helpfulness, relevance, accuracy, depth, creativity, and level of detail of the response. Your evaluation should focus on the assistant's answer to turn {turn_number}. Also, make sure that the assistant responses are in {{lang}}. Begin your evaluation by providing a short explanation. Be as objective as possible. After providing your explanation, you must rate the response on a scale of 1 to 10 by strictly following this format: "[[rating]]", for example: "Rating: [[5]]".
       user:
         en: |
           <|The Start of Assistant A's Conversation with User|>
-    
-          ### User:
-          {question1}
-    
-          ### Assistant A:
-          {q1_generated}
-    
-          ### User:
-          {question2}
-    
-          ### Assistant A:
-          {q2_generated}
-    
+
+          {conversation_history}
+
+          ### User (Turn {turn_number}):
+          {current_question}
+
+          ### Assistant A (Turn {turn_number}):
+          {current_response}
+
           <|The End of Assistant A's Conversation with User|>
         default: |
           <|The Start of Assistant A's Conversation with User|>
-    
-          ### User:
-          {question1}
-          
-          ### Assistant A:
-          {q1_generated}
-          
-          ### User:
-          {question2}
-          
-          ### Assistant A:
-          {q2_generated}
-          
+
+          {conversation_history}
+
+          ### User (Turn {turn_number}):
+          {current_question}
+
+          ### Assistant A (Turn {turn_number}):
+          {current_response}
+
           <|The End of Assistant A's Conversation with User|>

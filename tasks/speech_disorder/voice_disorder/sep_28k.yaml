@@ -1,0 +1,20 @@
+task_name: stuttering_detection
+dataset_path: DynamicSuperb/StutteringDetection_SEP28k
+modality: audio
+language: en
+split: test
+preprocessor: GeneralPreprocessor
+postprocessor: GeneralPostprocessor
+audio_column: audio
+target_column: label
+instruction_column: instruction
+user_prompt: "You are an expert at stuttering detection. Look for clear, obvious stuttering. Stuttering is obviously repeating a word or part of a word. The audio clip will ALWAYS be given after the following instructions, always attempt to answer."
+long_audio_processing_logic: truncate
+
+generation_kwargs:
+  temperature: 0.0001
+  max_completion_tokens: 64
+
+metrics:
+  - metric: llm_judge_binary
+  - metric: detailed_judge_prompt

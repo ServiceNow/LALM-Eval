@@ -25,7 +25,12 @@ For more detailed documentation regarding which metrics can be used for which ta
 | `bfcl_match_score` (&uarr;)        | Structured logic form comparison                 | bfcl_match_score                          |
 | `sql_score` (&uarr;)               | SQL correctness and execution match              | text2sql_score                                 |
 | `instruction_following` (&uarr;)   | LLM-judged instruction following capability                 | final              |
+| `multiple_choice_accuracy` (&uarr;)   | Accuracy of prediction the correct option letter in multiple choice tasks     | multiple_choice_accuracy              |
 | `gsm8k_exact_match` (&uarr;)   | Exact-match accuracy of the final numerical answer.             | gsm8k_exact_match              |
+| `joint_goal_accuracy` (&uarr;)   | Dialogue state tracking - all slots match             | joint_goal_accuracy              |
+| `slot_accuracy` (&uarr;)   | Dialogue state tracking - per-slot accuracy             | slot_accuracy              |
+| `slot_f1` (&uarr;)   | Dialogue state tracking - slot extraction F1             | slot_f1              |
+| `multiple_choice_accuracy` (&uarr;)   | Accuracy of prediction the correct option letter in multiple choice tasks     | multiple_choice_accuracy              |
 
 --- 
 
@@ -151,9 +156,45 @@ For more detailed documentation regarding which metrics can be used for which ta
 - **Used In**: Audio Instruction Following (`ifeval`)
 
 ---
-
+### `multiple_choice_accuracy`
+- **Type**: Multiple choice accuracy metric
+- **Description**: Measure the accuracy of prediction the correct option letter in multiple choice tasks. The correct option is expected in the format `Answer: A`
+- **Scoring (record-level)** Score between `0` and `100`, higher is better.
+- **Used In**: Audio GPQA Diamond (`gpqa_diamond`)
+---
 ### `gsm8k_exact_match`
 - **Type**: Math correctness metric
 - **Description**: Measure the exact-match accuracy of the final numerical answer (expected within `\boxed{}`) with the reference numerical answer.
 - **Scoring (record-level)** Score between `0` and `100`, higher is better.
 - **Used In**: Math (`gsm8k`)
+
+---
+
+### `joint_goal_accuracy`
+- **Type**: Dialogue state tracking metric
+- **Description**: Evaluates whether all predicted slots exactly match the ground truth dialogue state. A sample scores 1 only if every slot-value pair is correct.
+- **Scoring (record-level)** Score `0` or `1`, higher is better.
+- **Used In**: Task-Oriented Dialogue (`spoken_dialogue`)
+
+---
+
+### `slot_accuracy`
+- **Type**: Dialogue state tracking metric
+- **Description**: Computes the proportion of individual slots correctly predicted across all samples.
+- **Scoring (record-level)** Score between `0` and `1`, higher is better.
+- **Used In**: Task-Oriented Dialogue (`spoken_dialogue`)
+
+---
+
+### `slot_f1`
+- **Type**: Dialogue state tracking metric
+- **Description**: Computes F1 score for slot value extraction, balancing precision and recall of predicted slot-value pairs.
+- **Scoring (record-level)** Score between `0` and `1`, higher is better.
+- **Used In**: Task-Oriented Dialogue (`spoken_dialogue`)
+---
+
+### `multiple_choice_accuracy`
+- **Type**: Multiple choice accuracy metric
+- **Description**: Measure the accuracy of prediction the correct option letter in multiple choice tasks. The correct option is expected in the format `Answer: A`
+- **Scoring (record-level)** Score between `0` and `100`, higher is better.
+- **Used In**: Audio Instruction Following (`ifeval`)

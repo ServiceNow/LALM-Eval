@@ -1,0 +1,6 @@
+task_name: gpqa_diamond_text
+dataset_path: ServiceNow-AI/gpqa_audio
+split: test
+extends: ["./base.yaml#"]
+modality: text
+textual_input_column: text_prompt

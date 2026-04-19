@@ -1,0 +1,16 @@
+# Demonstrating how to run Librispeech ASR task on Voxtral-Mini-3B-2507
+
+task_metric: # task/group and metric
+  - ["librispeech_test_clean", "word_error_rate"]
+
+models:
+  - name: "infer-voxtral-mini-3b" # mandatory - must be unique
+    inference_type: "transcription" # Voxtral models have a separate "transcription" end-point which needs to be used for ASR tasks.
+    url: "http://<vLLM end-point URL>:<port>/v1" # mandatory - endpoint url
+    delay: 180
+    retry_attempts: 10
+    timeout: 120
+    model: "infer-voxtral-3b"
+    auth_token: "???" 
+    batch_size: 100 # Optional - batch eval size
+    chunk_size: 30 # Optional - max audio length in seconds fed to model

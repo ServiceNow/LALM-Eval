@@ -1,0 +1,541 @@
+############################################################
+# vLLM Kubernetes Deployment config
+#
+# This file defines a Kubernetes Deployment and Service to run
+# multiple vLLM containers (one per GPU/port) for serving the
+# `mistralai/Voxtral-Small-24B-2507` model using a vLLM-based
+# serving image. The Deployment creates 8 containers (deployment0
+# .. deployment7) within a single Pod template; each container
+# listens on its own port (8000..8007). The Service exposes
+# those ports as NodePort so the cluster nodes can receive traffic.
+#
+# Important notes:
+# - Replace the placeholder `HUGGING_FACE_HUB_TOKEN` values with a
+#   Kubernetes `Secret` or mount a token securely; avoid committing
+#   real tokens into source control.
+# - `replicas: 1` means one Pod; each Pod here contains multiple
+#   containers (one per device/port). If you want multiple worker
+#   Pods, increase `replicas` and ensure you have sufficient GPUs.
+# - Resource `requests`/`limits` are per-container. Adjust CPU,
+#   memory and `nvidia.com/gpu` counts to match your hardware.
+# - `--tensor-parallel-size` is currently set to `1`. If you want
+#   model parallelism across GPUs, change this and coordinate
+#   the deployment accordingly.
+# - Replace `<YOUR_VLLM_IMAGE_WITH_AUDIO_DEPENDANCIES_INSTALLED>`
+#   with the appropriate image containing the necessary audio dependencies before running.
+############################################################
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: infer-voxtral-small-24b
+  namespace: default
+spec:
+  replicas: 1 # Number of Pod replicas. Each Pod contains multiple containers (one per port/GPU).
+  selector:
+    matchLabels:
+      app: infer-voxtral-small-24b
+  template:
+    metadata:
+      annotations:
+        sidecar.istio.io/inject: "false"
+      labels:
+        app: infer-voxtral-small-24b
+    spec:
+      volumes:
+      - name: dshm
+        emptyDir:
+          medium: Memory
+
+      containers:
+      # The Pod runs multiple vLLM containers (deployment0..deployment7).
+      # Each container runs the same image with a different `--port` and
+      # container name. This pattern allows exposing multiple ports from
+      # a single Pod (useful when packing multiple GPUs on one node).
+      - name: deployment0
+        image: <YOUR_VLLM_IMAGE_WITH_AUDIO_DEPENDANCIES_INSTALLED>
+        args: 
+          [
+            "--model", 
+            "mistralai/Voxtral-Small-24B-2507", 
+            "--tokenizer-mode",
+            "mistral",
+            "--config-format",
+            "mistral",
+            "--load-format",
+            "mistral",
+            "--served-model-name",
+            "infer-voxtral-small-24b",
+            "--trust-remote-code",
+            "--dtype",
+            "auto",
+            "--disable-log-requests",
+            "--port",
+            "8000",
+            "--max-model-len",
+            "32768",
+            "--tensor-parallel-size", 
+            "1",
+            "--gpu-memory-utilization",
+            "0.9",
+          ]
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 60
+        ports:
+        - containerPort: 8000
+          name: vllm-port-0
+        env:
+        - name: HUGGING_FACE_HUB_TOKEN
+          # IMPORTANT: Replace this with a reference to a Kubernetes Secret
+          # (e.g. mount a secret or use `valueFrom.secretKeyRef`) rather
+          # than committing tokens into source control.
+          value: "<YOUR_HUGGING_FACE_TOKEN>"
+        resources:
+          requests:
+            cpu: "8"
+            memory: "64Gi"
+            nvidia.com/gpu: "1"
+          limits:
+            cpu: "8"
+            memory: "64Gi"
+            nvidia.com/gpu: "1"
+        volumeMounts:
+          - name: dshm
+            mountPath: /dev/shm
+          
+
+      - name: deployment1
+        image: <YOUR_VLLM_IMAGE_WITH_AUDIO_DEPENDANCIES_INSTALLED>
+        args: 
+          [
+            "--model", 
+            "mistralai/Voxtral-Small-24B-2507", 
+            "--tokenizer-mode",
+            "mistral",
+            "--config-format",
+            "mistral",
+            "--load-format",
+            "mistral",
+            "--served-model-name",
+            "infer-voxtral-small-24b",
+            "--trust-remote-code",
+            "--dtype",
+            "auto",
+            "--disable-log-requests",
+            "--port",
+            "8001",
+            "--max-model-len",
+            "32768",
+            "--tensor-parallel-size", 
+            "1",
+            "--gpu-memory-utilization",
+            "0.9",
+          ]
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8001
+          initialDelaySeconds: 5
+          periodSeconds: 60
+        ports:
+        - containerPort: 8001
+          name: vllm-port-1
+        env:
+        - name: HUGGING_FACE_HUB_TOKEN
+          value: "<YOUR_HUGGING_FACE_TOKEN>"
+        resources:
+          requests:
+            cpu: "8"
+            memory: "64Gi"
+            nvidia.com/gpu: "1"
+          limits:
+            cpu: "8"
+            memory: "64Gi"
+            nvidia.com/gpu: "1"
+        volumeMounts:
+          - name: dshm
+            mountPath: /dev/shm
+          
+
+      - name: deployment2
+        image: <YOUR_VLLM_IMAGE_WITH_AUDIO_DEPENDANCIES_INSTALLED>
+        args: 
+          [
+            "--model", 
+            "mistralai/Voxtral-Small-24B-2507",
+            "--tokenizer-mode",
+            "mistral",
+            "--config-format",
+            "mistral",
+            "--load-format",
+            "mistral",
+            "--served-model-name",
+            "infer-voxtral-small-24b",
+            "--trust-remote-code",
+            "--dtype",
+            "auto",
+            "--disable-log-requests",
+            "--port",
+            "8002",
+            "--max-model-len",
+            "32768",
+            "--tensor-parallel-size", 
+            "1",
+            "--gpu-memory-utilization",
+            "0.9",
+          ]
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8002
+          initialDelaySeconds: 5
+          periodSeconds: 60
+        ports:
+        - containerPort: 8002
+          name: vllm-port-2
+        env:
+        - name: HUGGING_FACE_HUB_TOKEN
+          value: "<YOUR_HUGGING_FACE_TOKEN>"
+        resources:
+          requests:
+            cpu: "8"
+            memory: "64Gi"
+            nvidia.com/gpu: "1"
+          limits:
+            cpu: "8"
+            memory: "64Gi"
+            nvidia.com/gpu: "1"
+        volumeMounts:
+          - name: dshm
+            mountPath: /dev/shm
+          
+
+      - name: deployment3
+        image: <YOUR_VLLM_IMAGE_WITH_AUDIO_DEPENDANCIES_INSTALLED>
+        args: 
+          [
+            "--model", 
+            "mistralai/Voxtral-Small-24B-2507", 
+            "--tokenizer-mode",
+            "mistral",
+            "--config-format",
+            "mistral",
+            "--load-format",
+            "mistral",
+            "--served-model-name",
+            "infer-voxtral-small-24b",
+            "--trust-remote-code",
+            "--dtype",
+            "auto",
+            "--disable-log-requests",
+            "--port",
+            "8003",
+            "--max-model-len",
+            "32768",
+            "--tensor-parallel-size", 
+            "1",
+            "--gpu-memory-utilization",
+            "0.9",
+          ]
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8003
+          initialDelaySeconds: 5
+          periodSeconds: 60
+        ports:
+        - containerPort: 8003
+          name: vllm-port-3
+        env:
+        - name: HUGGING_FACE_HUB_TOKEN
+          value: "<YOUR_HUGGING_FACE_TOKEN>"
+        resources:
+          requests:
+            cpu: "8"
+            memory: "64Gi"
+            nvidia.com/gpu: "1"
+          limits:
+            cpu: "8"
+            memory: "64Gi"
+            nvidia.com/gpu: "1"
+        volumeMounts:
+          - name: dshm
+            mountPath: /dev/shm
+          
+
+
+      - name: deployment4
+        image: <YOUR_VLLM_IMAGE_WITH_AUDIO_DEPENDANCIES_INSTALLED>
+        args: 
+          [
+            "--model", 
+            "mistralai/Voxtral-Small-24B-2507",
+            "--tokenizer-mode",
+            "mistral",
+            "--config-format",
+            "mistral",
+            "--load-format",
+            "mistral",
+            "--served-model-name",
+            "infer-voxtral-small-24b",
+            "--trust-remote-code",
+            "--dtype",
+            "auto",
+            "--disable-log-requests",
+            "--port",
+            "8004",
+            "--max-model-len",
+            "32768",
+            "--max-model-len",
+            "32768",
+            "--tensor-parallel-size", 
+            "1",
+            "--gpu-memory-utilization",
+            "0.9",
+          ]
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8004
+          initialDelaySeconds: 5
+          periodSeconds: 60
+        ports:
+        - containerPort: 8004
+          name: vllm-port-4
+        env:
+        - name: HUGGING_FACE_HUB_TOKEN
+          value: "<YOUR_HUGGING_FACE_TOKEN>"
+        resources:
+          requests:
+            cpu: "8"
+            memory: "64Gi"
+            nvidia.com/gpu: "1"
+          limits:
+            cpu: "8"
+            memory: "64Gi"
+            nvidia.com/gpu: "1"
+        volumeMounts:
+          - name: dshm
+            mountPath: /dev/shm
+          
+
+
+      - name: deployment5
+        image: <YOUR_VLLM_IMAGE_WITH_AUDIO_DEPENDANCIES_INSTALLED>
+        args: 
+          [
+            "--model", 
+            "mistralai/Voxtral-Small-24B-2507",
+            "--tokenizer-mode",
+            "mistral",
+            "--config-format",
+            "mistral",
+            "--load-format",
+            "mistral",
+            "--served-model-name",
+            "infer-voxtral-small-24b",
+            "--trust-remote-code",
+            "--dtype",
+            "auto",
+            "--disable-log-requests",
+            "--port",
+            "8005",
+            "--max-model-len",
+            "32768",
+            "--tensor-parallel-size", 
+            "1",
+            "--gpu-memory-utilization",
+            "0.9",
+          ]
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8005
+          initialDelaySeconds: 5
+          periodSeconds: 60
+        ports:
+        - containerPort: 8005
+          name: vllm-port-5
+        env:
+        - name: HUGGING_FACE_HUB_TOKEN
+          value: "<YOUR_HUGGING_FACE_TOKEN>"
+        resources:
+          requests:
+            cpu: "8"
+            memory: "64Gi"
+            nvidia.com/gpu: "1"
+          limits:
+            cpu: "8"
+            memory: "64Gi"
+            nvidia.com/gpu: "1"
+        volumeMounts:
+          - name: dshm
+            mountPath: /dev/shm
+          
+
+
+      - name: deployment6
+        image: <YOUR_VLLM_IMAGE_WITH_AUDIO_DEPENDANCIES_INSTALLED>
+        args: 
+          [
+            "--model", 
+            "mistralai/Voxtral-Small-24B-2507",
+            "--tokenizer-mode",
+            "mistral",
+            "--config-format",
+            "mistral",
+            "--load-format",
+            "mistral",
+            "--served-model-name",
+            "infer-voxtral-small-24b",
+            "--trust-remote-code",
+            "--dtype",
+            "auto",
+            "--disable-log-requests",
+            "--port",
+            "8006",
+            "--max-model-len",
+            "32768",
+            "--tensor-parallel-size", 
+            "1",
+            "--gpu-memory-utilization",
+            "0.9",
+          ]
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8006
+          initialDelaySeconds: 5
+          periodSeconds: 60
+        ports:
+        - containerPort: 8006
+          name: vllm-port-6
+        env:
+        - name: HUGGING_FACE_HUB_TOKEN
+          value: "<YOUR_HUGGING_FACE_TOKEN>"
+        resources:
+          requests:
+            cpu: "8"
+            memory: "64Gi"
+            nvidia.com/gpu: "1"
+          limits:
+            cpu: "8"
+            memory: "64Gi"
+            nvidia.com/gpu: "1"
+        volumeMounts:
+          - name: dshm
+            mountPath: /dev/shm
+          
+      - name: deployment7
+        image: <YOUR_VLLM_IMAGE_WITH_AUDIO_DEPENDANCIES_INSTALLED>
+        args: 
+          [
+            "--model", 
+            "mistralai/Voxtral-Small-24B-2507",
+            "--tokenizer-mode",
+            "mistral",
+            "--config-format",
+            "mistral",
+            "--load-format",
+            "mistral",
+            "--served-model-name",
+            "infer-voxtral-small-24b",
+            "--trust-remote-code",
+            "--dtype",
+            "auto",
+            "--disable-log-requests",
+            "--port",
+            "8007",
+            "--max-model-len",
+            "32768",
+            "--tensor-parallel-size", 
+            "1",
+            "--gpu-memory-utilization",
+            "0.9",
+          ]
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8007
+          initialDelaySeconds: 5
+          periodSeconds: 60
+        ports:
+        - containerPort: 8007
+          name: vllm-port-7
+        env:
+        - name: HUGGING_FACE_HUB_TOKEN
+          value: "<YOUR_HUGGING_FACE_TOKEN>"
+        resources:
+          requests:
+            cpu: "8"
+            memory: "64Gi"
+            nvidia.com/gpu: "1"
+          limits:
+            cpu: "8"
+            memory: "64Gi"
+            nvidia.com/gpu: "1"
+        volumeMounts:
+          - name: dshm
+            mountPath: /dev/shm
+          
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - infer-voxtral-small-24b
+            # Prevent multiple Pods of this app from being scheduled on the
+            # same node where possible (spreads pods across nodes).
+            topologyKey: kubernetes.io/hostname
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: infer-voxtral-small-24b-service
+  namespace: default
+spec:
+  type: NodePort
+  ports:
+  - name: http-infer-voxtral-small-24b-0
+    port: 8000
+    protocol: TCP
+    targetPort: 8000
+  - name: http-infer-voxtral-small-24b-1
+    port: 8001
+    protocol: TCP
+    targetPort: 8001
+  - name: http-infer-voxtral-small-24b-2
+    port: 8002
+    protocol: TCP
+    targetPort: 8002
+  - name: http-infer-voxtral-small-24b-3
+    port: 8003
+    protocol: TCP
+    targetPort: 8003
+  - name: http-infer-voxtral-small-24b-4
+    port: 8004
+    protocol: TCP
+    targetPort: 8004
+  - name: http-infer-voxtral-small-24b-5
+    port: 8005
+    protocol: TCP
+    targetPort: 8005
+  - name: http-infer-voxtral-small-24b-6
+    port: 8006
+    protocol: TCP
+    targetPort: 8006
+  - name: http-infer-voxtral-small-24b-7
+    port: 8007
+    protocol: TCP
+    targetPort: 8007
+  selector:
+    app: infer-voxtral-small-24b

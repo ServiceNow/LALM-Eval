@@ -1,0 +1,4 @@
+task_name: spokenwoz_audio
+extends: ["./base.yaml#"]
+split: test
+modality: audio
