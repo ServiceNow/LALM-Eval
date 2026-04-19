@@ -49,7 +49,7 @@ class MmarPreprocessor(Preprocessor):
         category_name = task_config.get('category_name', 'speech')
         audio_column_name = task_config.get('audio_column', None)
         target_column_name = task_config.get('target_column', None)
-        choices_column_name = task_config.get('choices_column', None)
+        choices_column_name = task_config.get('choice_column', None)
         category_column_name = task_config.get('category_column', '')
         sample_instruction_column_name = task_config.get('instruction_column', None)
         user_query_column_name = task_config.get('textual_input_column', None)
@@ -117,24 +117,30 @@ class MmarPreprocessor(Preprocessor):
             # Append any user-specified prompt add-ons and choices
             if choices_column_name and choices_column_name in record:
                 choices = record.get(choices_column_name, [])
-                instruction += "Select one option from the provided choices as the final answer:"
-                if isinstance(choices, list):
-                    choices_text = " ".join(choices)
-                else:
-                    choices_text = str(choices)
-                instruction += "\n Choices: " + choices_text
+                if choices:
+                    instruction += "Select one option from the provided choices as the final answer:"
+                    if isinstance(choices, list):
+                        choices_text = " ".join(choices)
+                    else:
+                        choices_text = str(choices)
+                    instruction += "\n Choices: " + choices_text
             
             # Warning users if no instruction is provided. This can cause evaluated models to hallucinate.
             if not instruction:
                 logger.warning("Instruction is empty for sample %d, add user_prompt for instruction insertion", i)
             record["instruction"] = instruction.strip()
 
-            metric_name = task_config.get('metrics')
-            if ('judge' in metric_name):
-                judge_type = metric_name.split('_')[-1]
-                record['judge_type'] = judge_type
+            metrics_config = task_config.get('metrics', [])
+            if isinstance(metrics_config, list) and metrics_config:
+                first = metrics_config[0]
+                metric_name = first.get('metric', '') if isinstance(first, dict) else str(first)
             else:
-                record['judge_type'] = 'detailed'
+                metric_name = str(metrics_config) if metrics_config else ''
+            if 'judge' in metric_name:
+                judge_type = metric_name.split('_')[-1]
+            else:
+                judge_type = 'detailed'
+            record['judge_type'] = judge_type
             processed_data.append(record)
             sample_count += 1
 
