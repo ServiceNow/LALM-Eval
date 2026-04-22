@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AU-Harness Configuration UI</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <button class="theme-toggle" onclick="toggleTheme()">
+                <span id="theme-icon">🌙</span>
+                <span id="theme-text">Dark Mode</span>
+            </button>
+            <h1>🎯 AU-Harness Configuration</h1>
+            <p>Configure and run audio model evaluations</p>
+        </header>
+
+        <main>
+            <!-- Task Selection Section -->
+            <section class="card">
+                <h2>📊 Task Selection</h2>
+                <p class="section-description">Select tasks for evaluation</p>
+
+                <div class="task-selection-controls">
+                    <button id="select-all-tasks">Choose All</button>
+                    <button id="reset-selection" class="secondary">Reset Selection</button>
+                </div>
+
+                <!-- Quick Filters -->
+                <div class="quick-filters">
+                    <h4>Quick Filters:</h4>
+                    <div class="filter-buttons">
+                        <button class="filter-btn" onclick="filterByPattern('common_voice')">Common Voice</button>
+                        <button class="filter-btn" onclick="filterByPattern('fleurs')">FLEURS</button>
+                        <button class="filter-btn" onclick="filterByPattern('librispeech')">LibriSpeech</button>
+                        <button class="filter-btn" onclick="filterByPattern('_en')">English</button>
+                        <button class="filter-btn" onclick="filterByPattern('_zh')">Chinese</button>
+                        <button class="filter-btn" onclick="filterByPattern('_es')">Spanish</button>
+                        <button class="filter-btn" onclick="filterByPattern('_fr')">French</button>
+                        <button class="filter-btn secondary" onclick="clearFilter()">Clear Filter</button>
+                    </div>
+                </div>
+
+                <div id="task-categories" class="categories-grid">
+                    <!-- Categories will be populated by JavaScript -->
+                </div>
+            </section>
+
+            <!-- Model Configuration Section -->
+            <section class="card">
+                <h2>🤖 Model Configuration</h2>
+                <p class="section-description">Configure one or more models for evaluation. Add multiple models to compare performance.</p>
+                
+                <div id="models-container">
+                    <div class="model-config-item" data-model-index="0">
+                        <h3>Model 1</h3>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label>Model Name <span class="required-star">*</span></label>
+                                <input type="text" class="model-name" placeholder="e.g., gpt-4o-mini-audio-preview" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Display Name <span class="required-star">*</span></label>
+                                <input type="text" class="model-display-name" placeholder="e.g., gpt-4o-mini-audio-preview-1" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Inference Type <span class="required-star">*</span></label>
+                                <select class="model-inference-type" required>
+                                    <option value="">Select type...</option>
+                                    <option value="openai">OpenAI/Azure OpenAI</option>
+                                    <option value="vllm">vLLM</option>
+                                    <option value="gemini">Google Gemini</option>
+                                    <option value="transcription">Transcription API</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>API Endpoint <span class="required-star">*</span></label>
+                                <input type="url" class="model-endpoint" placeholder="https://api.example.com" required>
+                            </div>
+                            <div class="form-group">
+                                <label>API Key <span class="required-star">*</span></label>
+                                <input type="password" class="model-api-key" placeholder="Your API key" required>
+                            </div>
+                        </div>
+                        
+                        <details class="advanced-config">
+                            <summary>Advanced Config</summary>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>Auth Token</label>
+                                    <input type="text" class="model-auth-token" placeholder="Bearer token (if different from API key)">
+                                </div>
+                                <div class="form-group">
+                                    <label>API Version</label>
+                                    <input type="text" class="model-api-version" placeholder="2025-01-01-preview">
+                                </div>
+                                <div class="form-group">
+                                    <label>Location (GCP)</label>
+                                    <input type="text" class="model-location" placeholder="us-central1">
+                                </div>
+                                <div class="form-group">
+                                    <label>Project ID (GCP)</label>
+                                    <input type="text" class="model-project-id" placeholder="your-gcp-project">
+                                </div>
+                                <div class="form-group">
+                                    <label>Delay (ms)</label>
+                                    <input type="number" class="model-delay" value="100" min="0">
+                                </div>
+                                <div class="form-group">
+                                    <label>Retry Attempts</label>
+                                    <input type="number" class="model-retry" value="8" min="0">
+                                </div>
+                                <div class="form-group">
+                                    <label>Timeout (sec)</label>
+                                    <input type="number" class="model-timeout" value="30" min="1">
+                                </div>
+                                <div class="form-group">
+                                    <label>Batch Size</label>
+                                    <input type="number" class="model-batch-size" value="1" min="1">
+                                </div>
+                                <div class="form-group">
+                                    <label>Chunk Size (sec)</label>
+                                    <input type="number" class="model-chunk-size" value="30" min="1">
+                                </div>
+                                <div class="form-group">
+                                    <label>Reasoning Effort</label>
+                                    <select class="model-reasoning-effort">
+                                        <option value="">Not specified</option>
+                                        <option value="low">Low</option>
+                                        <option value="medium">Medium</option>
+                                        <option value="high">High</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </details>
+                        
+                        <button type="button" class="remove-model-btn" onclick="removeModel(0)" style="display: none;">Remove Model</button>
+                    </div>
+                </div>
+                
+                <div class="model-actions">
+                    <button type="button" id="add-model-btn">+ Add Another Model</button>
+                    <button type="button" id="load-example-btn">Load Example Config</button>
+                </div>
+            </section>
+
+            <!-- Judge Configuration Section -->
+            <section class="card">
+                <h2>⚖️ Judge Configuration</h2>
+                <p class="section-description">Configure the judge model for LLM-based evaluation metrics. Required when selecting tasks with judge metrics.</p>
+                
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Judge Model <span class="required-star">*</span></label>
+                        <input type="text" id="judge-model" placeholder="gpt-4o-mini" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Judge Type <span class="required-star">*</span></label>
+                        <select id="judge-type" required>
+                            <option value="openai">OpenAI</option>
+                            <option value="vllm">vLLM</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Judge API Endpoint <span class="required-star">*</span></label>
+                        <input type="text" id="judge-api-endpoint" placeholder="${ENDPOINT_URL}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Judge API Key <span class="required-star">*</span></label>
+                        <input type="password" id="judge-api-key" placeholder="${AUTH_TOKEN}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Judge API Version</label>
+                        <input type="text" id="judge-api-version" placeholder="2025-01-01-preview">
+                    </div>
+                    <div class="form-group">
+                        <label>Judge Prompt Model Override</label>
+                        <input type="text" id="judge-prompt-model-override" placeholder="gpt-4o-mini-custom">
+                    </div>
+                    <div class="form-group">
+                        <label>Judge Concurrency</label>
+                        <input type="number" id="judge-concurrency" value="16" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label>Judge Temperature</label>
+                        <input type="number" id="judge-temperature" value="0.0" step="0.1" min="0" max="2">
+                    </div>
+                </div>
+            </section>
+
+            <!-- Advanced Configuration Section -->
+            <section class="card">
+                <h2>⚙️ Advanced Configuration</h2>
+                <details open>
+                    <summary>Evaluation Settings</summary>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Sample Limit</label>
+                            <input type="number" id="sample-limit" value="500" min="1">
+                        </div>
+                        <div class="form-group">
+                            <label>Min Duration (sec)</label>
+                            <input type="number" id="min-duration" value="1.0" min="0" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Max Duration (sec)</label>
+                            <input type="number" id="max-duration" value="60.0" min="0" step="0.1">
+                        </div>
+                        <div class="form-group">
+                            <label>Metric Aggregation</label>
+                            <select id="metric-aggregation">
+                                <option value="average">Average</option>
+                                <option value="max">Maximum</option>
+                                <option value="min">Minimum</option>
+                                <option value="first">First Value</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Language</label>
+                            <select id="language">
+                                <option value="en">English</option>
+                                <option value="zh">Chinese</option>
+                                <option value="es">Spanish</option>
+                                <option value="fr">French</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>
+                                <input type="checkbox" id="accented"> Include Accented Speech
+                            </label>
+                        </div>
+                    </div>
+                </details>
+                <details>
+                    <summary>Prompt Updates</summary>
+                    <div class="form-group">
+                        <label>Generation Params Override (YAML)</label>
+                        <textarea id="generation-params-override" rows="6" placeholder="Paste generation params override in YAML format..."></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Prompt Overrides (YAML)</label>
+                        <textarea id="prompt-overrides" rows="10" placeholder="Paste prompt overrides in YAML format..."></textarea>
+                    </div>
+                </details>
+            </section>
+
+            <!-- Configuration Preview Section -->
+            <section class="card">
+                <h2>📋 Configuration Preview</h2>
+                <div class="preview-actions">
+                    <button id="generate-config">Generate Config</button>
+                    <button id="copy-config">📋 Copy YAML</button>
+                    <button id="download-config">Download YAML</button>
+                </div>
+                <pre id="config-preview"># Configuration will appear here...</pre>
+            </section>
+
+        </main>
+    </div>
+
+    <script src="tasks.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

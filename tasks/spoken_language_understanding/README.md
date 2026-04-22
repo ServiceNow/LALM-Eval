@@ -29,4 +29,5 @@ dataset_metric:
 | **ALPACA_AUDIO**               | Speech QA          | [speech_qa/alpaca_audio](./speech_qa/alpaca_audio_test.yaml)| Speech-based Question Answering benchmark with audio instruction following capability testing      |    Apache-2.0     |
 | **PUBLIC_SG**               | Speech QA          | [speech_qa/public_sg](./speech_qa/public_sg_speech_qa_test.yaml)|  Speech Question Answering becnhmark     |    NSC License    |
 | **SPOKEN_SQUAD**               | Speech QA          | [speech_qa/spoken_squad](./speech_qa/spoken_squad_test.yaml)|  Extraction-based Speech QA task    |    CC-BY-SA-4.0    |
+| **SPOKENWOZ**               | Spoken Dialogue          | [spoken_dialogue/spokenwoz](./spoken_dialogue/spokenwoz/base.yaml)| Large-scale speech-text benchmark for task-oriented dialogue agents. Metrics: `joint_goal_accuracy`, `slot_accuracy`, `slot_f1`, `bleu`      |    CC-BY-NC-4.0    |
   

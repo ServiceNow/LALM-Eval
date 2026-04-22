@@ -1,0 +1,30 @@
+# Base configuration for SpokenWoz task-oriented dialogue benchmark
+# SpokenWoz: A Large-Scale Speech-Text Benchmark for Spoken Task-Oriented Dialogue
+# Paper: https://arxiv.org/abs/2305.13040
+# Website: https://spokenwoz.github.io/
+# Sample config: run_configs/spokenwoz_config.yaml
+
+dataset_path: pirxus/spokenwoz-whisper
+language: en
+preprocessor: SpokenWozPreprocessor
+postprocessor: SpokenWozPostprocessor
+audio_column: audio
+target_column: agent_text
+context_column: context
+user_text_column: text
+long_audio_processing_logic: truncate
+
+user_prompt: >
+  You are a helpful task-oriented dialogue agent. Your role is to assist users with their requests 
+  by providing helpful, accurate, and contextually appropriate responses. Consider the dialogue 
+  history and the user's current spoken input to generate a natural and helpful response.
+
+generation_kwargs:
+  temperature: 0.7
+  max_completion_tokens: 256
+
+metrics:
+  - metric: joint_goal_accuracy
+  - metric: slot_accuracy
+  - metric: slot_f1
+  - metric: bleu

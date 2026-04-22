@@ -2,14 +2,11 @@
 
 Same for english.json
 """
-
-# ruff: noqa
 import json
 import os
 import re
-from collections.abc import Iterator
 from fractions import Fraction
-from typing import Match
+from typing import Iterator, List, Match, Optional, Union
 
 from more_itertools import windowed
 
@@ -17,7 +14,8 @@ from .basic import remove_symbols_and_diacritics
 
 
 class EnglishNumberNormalizer:
-    """Convert any spelled-out numbers into arabic numbers, while handling:
+    """
+    Convert any spelled-out numbers into arabic numbers, while handling:
 
     - remove any commas
     - keep the suffixes such as: `1960s`, `274th`, `32nd`, etc.
@@ -57,7 +55,10 @@ class EnglishNumberNormalizer:
                 start=1,
             )
         }
-        self.ones_plural = {"sixes" if name == "six" else name + "s": (value, "s") for name, value in self.ones.items()}
+        self.ones_plural = {
+            "sixes" if name == "six" else name + "s": (value, "s")
+            for name, value in self.ones.items()
+        }
         self.ones_ordinal = {
             "zeroth": (0, "th"),
             "first": (1, "st"),
@@ -83,8 +84,13 @@ class EnglishNumberNormalizer:
             "eighty": 80,
             "ninety": 90,
         }
-        self.tens_plural = {name.replace("y", "ies"): (value, "s") for name, value in self.tens.items()}
-        self.tens_ordinal = {name.replace("y", "ieth"): (value, "th") for name, value in self.tens.items()}
+        self.tens_plural = {
+            name.replace("y", "ies"): (value, "s") for name, value in self.tens.items()
+        }
+        self.tens_ordinal = {
+            name.replace("y", "ieth"): (value, "th")
+            for name, value in self.tens.items()
+        }
         self.tens_suffixed = {**self.tens_plural, **self.tens_ordinal}
 
         self.multipliers = {
@@ -101,8 +107,12 @@ class EnglishNumberNormalizer:
             "nonillion": 1_000_000_000_000_000_000_000_000_000_000,
             "decillion": 1_000_000_000_000_000_000_000_000_000_000_000,
         }
-        self.multipliers_plural = {name + "s": (value, "s") for name, value in self.multipliers.items()}
-        self.multipliers_ordinal = {name + "th": (value, "th") for name, value in self.multipliers.items()}
+        self.multipliers_plural = {
+            name + "s": (value, "s") for name, value in self.multipliers.items()
+        }
+        self.multipliers_ordinal = {
+            name + "th": (value, "th") for name, value in self.multipliers.items()
+        }
         self.multipliers_suffixed = {
             **self.multipliers_plural,
             **self.multipliers_ordinal,
@@ -125,7 +135,10 @@ class EnglishNumberNormalizer:
             "cent": "¢",
             "cents": "¢",
         }
-        self.prefixes = set(list(self.preceding_prefixers.values()) + list(self.following_prefixers.values()))
+        self.prefixes = set(
+            list(self.preceding_prefixers.values())
+            + list(self.following_prefixers.values())
+        )
         self.suffixers = {
             "per": {"cent": "%"},
             "percent": "%",
@@ -136,26 +149,26 @@ class EnglishNumberNormalizer:
             [
                 key
                 for mapping in [
-                self.zeros,
-                self.ones,
-                self.ones_suffixed,
-                self.tens,
-                self.tens_suffixed,
-                self.multipliers,
-                self.multipliers_suffixed,
-                self.preceding_prefixers,
-                self.following_prefixers,
-                self.suffixers,
-                self.specials,
-            ]
+                    self.zeros,
+                    self.ones,
+                    self.ones_suffixed,
+                    self.tens,
+                    self.tens_suffixed,
+                    self.multipliers,
+                    self.multipliers_suffixed,
+                    self.preceding_prefixers,
+                    self.following_prefixers,
+                    self.suffixers,
+                    self.specials,
+                ]
                 for key in mapping
             ]
         )
         self.literal_words = {"one", "ones"}
 
-    def process_words(self, words: list[str]) -> Iterator[str]:
-        prefix: str | None = None
-        value: str | int | None = None
+    def process_words(self, words: List[str]) -> Iterator[str]:
+        prefix: Optional[str] = None
+        value: Optional[Union[str, int]] = None
         skip = False
 
         def to_fraction(s: str):
@@ -164,7 +177,7 @@ class EnglishNumberNormalizer:
             except ValueError:
                 return None
 
-        def output(result: str | int):
+        def output(result: Union[str, int]):
             nonlocal prefix, value
             result = str(result)
             if prefix is not None:
@@ -214,7 +227,9 @@ class EnglishNumberNormalizer:
                 if value is None:
                     value = ones
                 elif isinstance(value, str) or prev in self.ones:
-                    if prev in self.tens and ones < 10:  # replace the last zero with the digit
+                    if (
+                        prev in self.tens and ones < 10
+                    ):  # replace the last zero with the digit
                         assert value[-1] == "0"
                         value = value[:-1] + str(ones)
                     else:
@@ -437,7 +452,8 @@ class EnglishNumberNormalizer:
 
 
 class EnglishSpellingNormalizer:
-    """Applies British-American spelling mappings as listed in [1].
+    """
+    Applies British-American spelling mappings as listed in [1].
 
     [1] https://www.tysto.com/uk-us-spelling-list.html
     """
@@ -498,24 +514,21 @@ class EnglishTextNormalizer:
             r"'s gone\b": " has gone",
             r"'d done\b": " had done",  # "'s done" is ambiguous
             r"'s got\b": " has got",
-            # general contractions - with word capture group to get the base word
-            r"(\w+)n't\b": "\1 not",
-            r"(\w+)'re\b": "\1 are",
-            r"(\w+)'s\b": "\1 is",
-            r"(\w+)'d\b": "\1 would",
-            r"(\w+)'ll\b": "\1 will",
-            r"(\w+)'t\b": "\1 not",
-            r"(\w+)'ve\b": "\1 have",
-            r"(\w+)'m\b": "\1 am",
+            # general contractions
+            r"n't\b": " not",
+            r"'re\b": " are",
+            r"'s\b": " is",
+            r"'d\b": " would",
+            r"'ll\b": " will",
+            r"'t\b": " not",
+            r"'ve\b": " have",
+            r"'m\b": " am",
         }
         self.standardize_numbers = EnglishNumberNormalizer()
         self.standardize_spellings = EnglishSpellingNormalizer()
 
     def __call__(self, s: str):
         s = s.lower()
-
-        # Normalize various unicode apostrophes/backticks to standard ASCII apostrophe
-        s = re.sub(r"[‘’´`‛ʻʼʽʾʿˊˋˈ]", "'", s)
 
         s = re.sub(r"[<\[][^>\]]*[>\]]", "", s)  # remove words between brackets
         s = re.sub(r"\(([^)]+?)\)", "", s)  # remove words between parenthesis

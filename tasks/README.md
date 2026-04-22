@@ -43,11 +43,13 @@ For more detailed documentation regarding individual metrics, refer to [Metrics 
 | `spoken_language_understanding` | `translation`                      | `bleu`, `bertscore`, `meteor`, `comet`           |
 | `spoken_language_understanding` | `spoken_dialogue_summarization`    | `llm_judge_detailed`                             |
 | `spoken_language_understanding` | `intent_classification`            | `llm_judge_binary`                               |
+| `spoken_language_understanding` | `spoken_dialogue`                  | `joint_goal_accuracy`, `slot_accuracy`, `slot_f1`, `bleu` |
 | `spoken_language_reasoning`     | `bfcl`                             | `bfcl_match_score`                               |
 | `spoken_language_reasoning`     | `speech_to_sql`                    | `sql_score`                                      |
 | `spoken_language_reasoning`     | `ifeval`                           | `instruction_following`                          |
 | `spoken_language_reasoning`     | `mtbench`                           | `mt_bench_llm_judge`                            |
 | `spoken_language_reasoning`     | `gsm8k`                             | `gsm8k_exact_match`                               |
+| `spoken_language_reasoning`     | `gpqa_diamond`                     | `multiple_choice_accuracy`                               |
 | `safety_and_security`           | `safety`                           | `detailed_judge_prompt`                          |
 | `safety_and_security`           | `spoofing`                         | `detailed_judge_prompt`, `llm_judge_binary`      |
 

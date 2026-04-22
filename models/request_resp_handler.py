@@ -5,6 +5,8 @@ import time
 import inspect
 
 import httpx
+from google.auth import default
+from google.auth.transport.requests import Request
 from openai import AsyncAzureOpenAI, AsyncOpenAI
 from models.model_response import ModelResponse, ErrorTracker
 from utils import constants
@@ -20,6 +22,8 @@ class RequestRespHandler:
         self.model_info = model_info
         self.api = model_info.get("url")
         self.auth = model_info.get("auth_token", "")
+        self.location = model_info.get("location", "")
+        self.project_id = model_info.get("project_id", "")
         self.api_version = model_info.get("api_version", "")
         self.client = None
         self.timeout = timeout
@@ -153,6 +157,25 @@ class RequestRespHandler:
                     http_client=httpx.AsyncClient(verify=verify_ssl),
                 )
             )
+        elif self.inference_type == constants.GEMINI_CHAT_COMPLETION:
+            # Gemini endpoints
+
+            # Set an API host for Gemini on Vertex AI 
+            api_host = "aiplatform.googleapis.com"
+            if self.location != "global":
+                api_host = f"{self.location}-aiplatform.googleapis.com"
+
+            credentials, _ = default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
+            credentials.refresh(Request())
+
+            self.client = AsyncOpenAI(
+                base_url=f"https://{api_host}/v1/projects/{self.project_id}/locations/{self.location}/endpoints/openapi",
+                api_key=credentials.token,
+                timeout=timeout,
+                max_retries=0,
+                default_headers={"Connection": "close"},
+                http_client=httpx.AsyncClient(verify=verify_ssl),
+            )
 
     def validated_safe_generation_params(self, generation_params):
         """Validate and sanitize generation parameters for the OpenAI API client.
@@ -187,6 +210,7 @@ class RequestRespHandler:
         2. Any exception is wrapped in a `ModelResponse` with ``response_code = 500``.
         """
         model_name: str | None = self.model_info.get("model")
+        reasoning_effort = self.model_info.get("reasoning_effort", None)
         if tools:
             tools = self.convert_to_tool(tools)
 
@@ -194,12 +218,19 @@ class RequestRespHandler:
         # Re-create a fresh client for this request to avoid closed-loop issues
         self.set_client(verify_ssl=True, timeout=self.timeout)
         try:
-            if self.inference_type == constants.OPENAI_CHAT_COMPLETION or self.inference_type == constants.INFERENCE_SERVER_VLLM_CHAT_COMPLETION:
+            if self.inference_type in (constants.OPENAI_CHAT_COMPLETION, constants.INFERENCE_SERVER_VLLM_CHAT_COMPLETION, constants.GEMINI_CHAT_COMPLETION):
                 # openai chat completions, vllm chat completions
                 self.generation_params = self.validated_safe_generation_params(self.generation_params)
-                prediction = await self.client.chat.completions.create(
-                    model=model_name, messages=msg_body, tools=tools, **self.generation_params
-                )
+
+                if reasoning_effort:
+                    prediction = await self.client.chat.completions.create(
+                        model=model_name, messages=msg_body, tools=tools, reasoning_effort=reasoning_effort, **self.generation_params
+                    )
+                else:
+                    prediction = await self.client.chat.completions.create(
+                        model=model_name, messages=msg_body, tools=tools, **self.generation_params
+                    )
+                
                 raw_response: str = self._extract_response_data(prediction)
                 llm_response: str = raw_response['choices'][0]['message']['content'] or " "
 

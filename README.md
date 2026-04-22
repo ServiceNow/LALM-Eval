@@ -161,6 +161,26 @@ bash evaluate.sh
 
 Results will be generated in `run_logs/` with detailed metrics and analysis.
 
+## 🖥️ Configuration UI Tool
+
+AU-Harness includes a web-based configuration UI tool to help users easily create and customize evaluation configurations without manually editing YAML files.
+
+### Features:
+- Interactive task selection from all supported categories (Speech Recognition, Paralinguistics, Audio Understanding, etc.)
+- Model configuration with preset templates for common models like GPT-4o-mini and Gemini
+- Advanced options for filtering, judge settings, and generation parameters
+- Copy to clipboard or download functionality
+
+### Usage:
+1. Navigate to the `ui/` directory
+2. Open `index.html` in your web browser
+3. Select the tasks you want to evaluate from the categorized task list
+4. Configure your models by adding model endpoints, API keys, and parameters
+5. Adjust advanced options like sample limits, language filters, and judge settings
+6. Generate the YAML configuration, then copy or download it for use with `evaluate.sh`
+
+This tool simplifies the process of setting up complex evaluation runs by providing a user-friendly interface to build `config.yaml` files, making it easier to get started with AU-Harness evaluations.
+
 ## 💻 Usage
 
 AU-Harness requires setting up a running configuration file (`config.yaml`) to define your evaluation parameters. This file controls which models, datasets, and metrics are used in your evaluation.

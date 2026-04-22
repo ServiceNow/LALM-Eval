@@ -1,0 +1,54 @@
+# SpokenWoz Benchmark Configuration
+# Task-oriented dialogue evaluation with dialogue state tracking metrics
+# Paper: https://arxiv.org/abs/2305.13040
+# Website: https://spokenwoz.github.io/
+
+task_metric:
+  # Audio modality - evaluates spoken dialogue understanding
+  - ["spokenwoz_audio", "joint_goal_accuracy"]
+  - ["spokenwoz_audio", "slot_accuracy"]
+  - ["spokenwoz_audio", "slot_f1"]
+  - ["spokenwoz_audio", "bleu"]
+
+  # Text modality - evaluates text-based dialogue (uncomment to use)
+  # - ["spokenwoz_text", "joint_goal_accuracy"]
+  # - ["spokenwoz_text", "slot_accuracy"]
+  # - ["spokenwoz_text", "slot_f1"]
+  # - ["spokenwoz_text", "bleu"]
+
+# Aggregate dialogue metrics into a single score
+aggregate:
+  - ["joint_goal_accuracy", ["spokenwoz_audio"]]
+  - ["slot_accuracy", ["spokenwoz_audio"]]
+  - ["slot_f1", ["spokenwoz_audio"]]
+  - ["bleu", ["spokenwoz_audio"]]
+
+filter:
+  num_samples: 2  # Start with a small sample for testing; remove for full evaluation
+  length_filter: [0.0, 30.0]  # Audio length filter in seconds
+
+logging:
+  log_file: "spokenwoz_eval.log"
+
+models:
+  - name: "gpt-4o-audio-preview"
+    inference_type: "openai"
+    url: "${ENDPOINT_URL}"
+    delay: 100
+    retry_attempts: 8
+    timeout: 60
+    model: "gpt-4o-audio-preview"
+    auth_token: "${AUTH_TOKEN}"
+    api_version: "${API_VERSION}"
+    batch_size: 50
+    chunk_size: 30
+
+# Usage:
+# 1. Set environment variables: ENDPOINT_URL, AUTH_TOKEN, API_VERSION
+# 2. Run: python evaluate.py --config run_configs/spokenwoz_config.yaml
+#
+# Metrics:
+# - joint_goal_accuracy: Whether all predicted slots match ground truth (strict)
+# - slot_accuracy: Per-slot accuracy across all samples
+# - slot_f1: F1 score for slot value extraction
+# - bleu: Response generation quality
