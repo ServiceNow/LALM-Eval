@@ -46,7 +46,7 @@ class MmarPreprocessor(Preprocessor):
         audio_column_name = task_config.get('audio_column', None)
         target_column_name = task_config.get('target_column', None)
         choices_column_name = task_config.get('choice_column', None)
-        category_column_name = task_config.get('category_column', '')
+        category_column_name = task_config.get('category_column', None)
         sample_instruction_column_name = task_config.get('instruction_column', None)
 
         # Obtain task-specific prompt (if provided)
