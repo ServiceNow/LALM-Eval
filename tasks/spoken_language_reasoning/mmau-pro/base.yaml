@@ -1,0 +1,21 @@
+# Base configuration for MMAU-PRO tasks
+dataset_path: gamma-lab-umd/MMAU-Pro
+language: en
+split: test
+preprocessor: MmarPreprocessor
+postprocessor: GeneralPostprocessor
+audio_column: audio_path
+instruction_column: question
+target_column: answer
+choice_column: choices
+category_column: category
+
+user_prompt: Listen to the audio carefully and answer the presented question accordingly. Follow the options that are given in the question. 
+long_audio_processing_logic: truncate
+
+generation_kwargs:
+  temperature: 0.2
+  max_completion_tokens: 1024
+
+metrics:
+  - metric: llm_judge_binary
