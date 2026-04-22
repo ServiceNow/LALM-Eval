@@ -35,7 +35,6 @@ def extract_tar_gz(file_path, extract_path="."):
         extract_path: str: Directory to extract the contents to.
     """
     try:
-        print ("Tar gz extraction")
         with tarfile.open(file_path, "r:gz") as tar:
             tar.extractall(path=extract_path)
         logger.warning(f"Successfully extracted {file_path} to {extract_path}")
@@ -75,7 +74,7 @@ def extract_archive(file_path, extract_path="."):
     elif file_path.endswith(".zip"):
         extract_zip(file_path, extract_path)
     else:
-        logger.warnning(f"Unsupported archive format for file: {file_path}")
+        logger.warning(f"Unsupported archive format for file: {file_path}")
 
 def smart_round(val: float, precision: int = constants.ROUND_DIGITS) -> float:
     """Round off metrics to global precision value.

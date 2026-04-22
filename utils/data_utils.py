@@ -1,12 +1,11 @@
 import os
+import logging
 from pathlib import Path
 from datasets import load_dataset
 from dotenv import load_dotenv
 from utils.util import get_class_from_module
 from huggingface_hub import hf_hub_download, HfApi
 from . import util
-import logging
-import os
 
 logger = logging.getLogger(__name__)
 

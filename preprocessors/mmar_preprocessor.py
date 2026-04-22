@@ -7,19 +7,15 @@ when preprocessing. LOCAL_DATA_DIR needs to be set from environment (.env).
 """
 
 import logging
+import os
 from typing import Dict, List, Any
 
-import numpy as np
+from dotenv import load_dotenv
 from tqdm import tqdm
 from datasets import Dataset
 from preprocessors.base import Preprocessor
 from scipy.signal import resample
 import soundfile as sf
-from urllib.request import urlopen
-import io
-import os
-from dotenv import load_dotenv
-from pathlib import Path
 
 
 logger = logging.getLogger(__name__)
@@ -52,7 +48,6 @@ class MmarPreprocessor(Preprocessor):
         choices_column_name = task_config.get('choice_column', None)
         category_column_name = task_config.get('category_column', '')
         sample_instruction_column_name = task_config.get('instruction_column', None)
-        user_query_column_name = task_config.get('textual_input_column', None)
 
         # Obtain task-specific prompt (if provided)
         user_prompt = task_config.get('user_prompt', '')
@@ -71,12 +66,12 @@ class MmarPreprocessor(Preprocessor):
 
         for i, row in enumerate(tqdm(dataset, desc="Processing samples")):
             instruction = user_prompt
-            if (row[category_column_name] != category_name):
+            if row[category_column_name] != category_name:
                 continue
             # Create record by accessing each feature by index
             record = {k: row[k] for k in dataset_keys}
             audio_path = record[audio_column_name]
-            if (isinstance(audio_path, list)):
+            if isinstance(audio_path, list):
                 audio_path = audio_path[0]
 
             # Mapping audio path to local audio path (sample: $HOME/mmau-pro/data/xyz.wav)
@@ -97,26 +92,26 @@ class MmarPreprocessor(Preprocessor):
             total_duration += audio_duration
 
             # Apply dataset filtering
-            if (length_filter):
+            if length_filter:
                 if not self.check_audio_length(record["array"], record["sampling_rate"], length_filter):
                     continue
-            if (num_samples_filter):
+            if num_samples_filter:
                 if sample_count >= num_samples_filter:
                     break
 
             # General processor requires reference. Otherwise, implement your own preprocessor.
             if target_column_name and target_column_name in record:
-                record["model_target"] = record.get(target_column_name, None)
+                record["model_target"] = record[target_column_name]
             else:
                 raise ValueError("No valid target key found in record")
 
             # Add sample-specific instructions if they exist in the dataset
             if sample_instruction_column_name and sample_instruction_column_name in record:
-                instruction += record.get(sample_instruction_column_name, "")
+                instruction += record[sample_instruction_column_name]
             
             # Append any user-specified prompt add-ons and choices
             if choices_column_name and choices_column_name in record:
-                choices = record.get(choices_column_name, [])
+                choices = record[choices_column_name]
                 if choices:
                     instruction += "Select one option from the provided choices as the final answer:"
                     if isinstance(choices, list):
