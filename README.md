@@ -152,7 +152,7 @@ Get up and running in under a minute:
 # Clone and install
 git clone https://github.com/ServiceNow/AU-Harness.git
 cd AU-Harness
-pip install -r requirements.txt
+bash setup.sh
 
 # Run your first evaluation
 cp sample_config.yaml config.yaml
