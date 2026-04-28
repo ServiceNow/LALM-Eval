@@ -157,6 +157,12 @@ bash setup.sh
 # Run your first evaluation
 cp sample_config.yaml config.yaml
 bash evaluate.sh
+
+# Run EVA voice agent evaluation
+# First, fill in your API keys (path shown after running setup.sh):
+cp ../eva/.env.example ../eva/.env
+# Edit ../eva/.env with your API keys, then:
+bash evaluate.sh --eva
 ```
 
 Results will be generated in `run_logs/` with detailed metrics and analysis.

@@ -18,8 +18,13 @@ if [ -n "$EVA_PATH" ]; then
     git -C "$EVA_PATH" pull
 else
     echo "EVA not found, cloning..."
-    git clone https://github.com/ServiceNow/eva.git ./eva
-    EVA_PATH="./eva"
+    git clone https://github.com/ServiceNow/eva.git ../eva
+    EVA_PATH="../eva"
+    echo ""
+    echo "NOTE: Please create $EVA_PATH/.env from $EVA_PATH/.env.example and fill in your API keys before running EVA."
+    echo "  cp $EVA_PATH/.env.example $EVA_PATH/.env"
 fi
 
+# Save EVA path for use by evaluate.sh
+echo "$EVA_PATH" > .eva_path
 echo "EVA ready at $EVA_PATH"
