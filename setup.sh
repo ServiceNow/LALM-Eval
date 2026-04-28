@@ -18,12 +18,19 @@ if [ -n "$EVA_PATH" ]; then
     git -C "$EVA_PATH" pull
 else
     echo "EVA not found, cloning..."
-    git clone -b ${EVA_BRANCH:-main} https://github.com/ServiceNow/eva.git ../eva
+    git clone -b ${EVA_BRANCH:-latest} --depth 1 --no-tags --single-branch https://github.com/ServiceNow/eva.git ../eva
     EVA_PATH="../eva"
     echo ""
     echo "NOTE: Please create $EVA_PATH/.env from $EVA_PATH/.env.example and fill in your API keys before running EVA."
     echo "  cp $EVA_PATH/.env.example $EVA_PATH/.env"
 fi
+
+# Install EVA dependencies
+if ! command -v uv &> /dev/null; then
+    echo "uv not found. Installing via pip..."
+    pip install uv
+fi
+cd "$EVA_PATH" && uv sync --all-extras && cd -
 
 # Save EVA path for use by evaluate.sh
 echo "$EVA_PATH" > .eva_path
