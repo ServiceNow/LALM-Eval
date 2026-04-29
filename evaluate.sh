@@ -1,11 +1,5 @@
 #!/bin/bash
 
-# Ensure setup.sh has been run
-if [ ! -d "./eva" ]; then
-    echo "Error: EVA not found. Please run 'bash setup.sh' first."
-    exit 1
-fi
-
 # EVA mode
 if [[ "$1" == "--eva" ]]; then
     if [ ! -f ".eva_path" ]; then
