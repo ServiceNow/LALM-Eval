@@ -164,6 +164,9 @@ cp ../eva/.env.example ../eva/.env
 # Edit ../eva/.env with your API keys, then:
 bash evaluate.sh --eva
 
+# Run EVA in text-only mode (no audio/STT/TTS required)
+bash evaluate.sh --eva --text
+
 # Optional: specify a custom EVA branch (defaults to main)
 EVA_BRANCH=my-branch bash setup.sh
 ```
