@@ -11,7 +11,13 @@ if [[ "$1" == "--eva" ]]; then
         echo "Error: $EVA_PATH/.env not found. Please create it from $EVA_PATH/.env.example and fill in your API keys."
         exit 1
     fi
-    cd "$EVA_PATH" && eva
+    shift
+    if [[ "$1" == "--text" ]]; then
+        shift
+        cd "$EVA_PATH" && uv run python scripts/run_text_only.py "$@"
+    else
+        cd "$EVA_PATH" && uv run eva "$@"
+    fi
     exit 0
 fi
 
