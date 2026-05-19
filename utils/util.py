@@ -226,11 +226,14 @@ def _validate_models(config: Dict) -> None:
     def validate_optional_fields(info: Dict, index: int) -> None:
         optional_fields = {
             'delay': int, 'retry_attempts': int, 'timeout': int,
-            'auth_token': str, 'api_version': str, 'batch_size': int, 'chunk_size': int
+            'auth_token': str, 'api_version': str, 'batch_size': int, 'chunk_size': int,
+            'role': str,
         }
         for field, field_type in optional_fields.items():
             if field in info and not isinstance(info[field], field_type):
                 raise ValueError(f"Model {index}: '{field}' must be of type {field_type.__name__}")
+        if 'role' in info and info['role'] not in ('target', 'helper'):
+            raise ValueError(f"Model {index}: 'role' must be 'target' or 'helper'")
     if 'models' not in config or not isinstance(config['models'], list):
         raise ValueError("'models' section is required and must be a list")
     for i, model_entry in enumerate(config['models'], start=1):

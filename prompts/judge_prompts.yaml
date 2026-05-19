@@ -215,3 +215,12 @@ mt_bench:
           {current_response}
 
           <|The End of Assistant A's Conversation with User|>
+
+aer_comparison_prompt: |-
+  Compare two answer sets to the same numbered list of questions. Two answers
+  match if they are semantically equivalent (paraphrases count as matching;
+  "unknown" only matches "unknown"; "N/A" matches "N/A").
+
+  Return ONLY a JSON array of booleans in question order: true for match,
+  false for mismatch. The array length must equal the number of questions.
+  Output no other text.

@@ -45,6 +45,7 @@ class Model(ABC):
         self.model_url = model_info.get("url")
         self.api_version = model_info.get("api_version")
         self.inference_type = model_info.get("inference_type")
+        self.role = model_info.get("role", "target")
         self.batch_size = model_info.get("batch_size", 1)
         # sleep before every call - in ms
         self.delay = model_info.get("delay", 100)

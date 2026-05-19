@@ -1,0 +1,47 @@
+task_metric:
+  - ["servicenow_cs_en_es", "word_error_rate"]
+  - ["servicenow_cs_en_fr", "word_error_rate"]
+  - ["servicenow_cs_en_fr_ca", "word_error_rate"]
+  - ["servicenow_cs_en_de", "word_error_rate"]
+  - ["servicenow_cs_en_es", "codeswitched_wer"]
+  - ["servicenow_cs_en_fr", "codeswitched_wer"]
+  - ["servicenow_cs_en_fr_ca", "codeswitched_wer"]
+  - ["servicenow_cs_en_de", "codeswitched_wer"]
+  - ["servicenow_cs_en_es", "llm_judge_aer"]
+  - ["servicenow_cs_en_fr", "llm_judge_aer"]
+  - ["servicenow_cs_en_fr_ca", "llm_judge_aer"]
+  - ["servicenow_cs_en_de", "llm_judge_aer"]
+
+logging:
+  log_file: servicenow_cs_results.log
+
+models:
+  - name: whisper-large-v3-turbo
+    inference_type: transcription
+    url: ${ENDPOINT_URL}
+    auth_token: ${AUTH_TOKEN}
+    model: whisper-large-v3-turbo
+    delay: 100
+    retry_attempts: 8
+    timeout: 30
+    batch_size: 100
+    chunk_size: 30
+
+  # Pipeline helper used by CodeSwitchAerPostprocessor to extract answers from
+  # ASR transcripts before AER comparison. Not scored as a benchmark target.
+  - name: aer_extractor
+    role: helper
+    inference_type: openai_chat_completion
+    model: gpt-4o-mini
+    url: ${EXTRACTOR_ENDPOINT_URL}
+    auth_token: ${EXTRACTOR_AUTH_TOKEN}
+    api_version: ${EXTRACTOR_API_VERSION}
+    batch_size: 10
+
+judge_settings:
+  judge_type: vllm
+  judge_model: gemma-4-31B-it
+  judge_api_key: ${GEMMA_API_KEY}
+  judge_api_endpoint: ${GEMMA_ENDPOINT_URL}
+  judge_concurrency: 10
+  judge_temperature: 0.0
