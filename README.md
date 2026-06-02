@@ -34,7 +34,7 @@ AU-Harness is a standardized, efficient and highly customizable open-source fram
 </p>
 
 2. 🔧 **Immensely Customizable**:
-   - Dataset and Samples can be customized and filtred by accents, language, length, and more
+   - Dataset and Samples can be customized and filtered by accents, language, length, and more
    - Models and tasks can be customized by temperature, request parameters, prompts and batch size
    - Score reporting can be customized through the aggregation parameter
 
