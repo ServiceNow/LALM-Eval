@@ -72,8 +72,9 @@ metric_map = {
     "slot_accuracy": ("metrics.dialogue_metrics", "SlotAccuracy"),
     "slot_f1": ("metrics.dialogue_metrics", "SlotF1"),
     "word_error_rate": ("metrics.word_error_rate_metrics", "WERMetrics"),
-    "codeswitched_wer": ("metrics.codeswitched_wer_metrics", "CodeSwitchedWERMetrics"),
-    "llm_judge_aer": ("metrics.aer_judge_metrics", "AERJudgeMetric"),
+    "codeswitched_wer": ("metrics.word_error_rate_metrics", "CodeSwitchedWERMetrics"),
+    "llm_judge_aer": ("metrics.llm_judge", "AERJudgeMetric"),
+    "llm_judge_ser": ("metrics.llm_judge", "SERJudgeMetric"),
     "comet": ("metrics.comet_score", "CometScore"),
     "multiple_choice_accuracy": ("metrics.multiple_choice_metrics", "MultipleChoiceMetrics"),
     "mt_bench_llm_judge": ("metrics.llm_judge", "MtbenchLLMJudgeMetric"),
@@ -83,7 +84,7 @@ metric_map = {
 task_temp_map = {
     # ASR
     "asr": 0.1,
-    "code_switching_asr": 0.1,
+    "code_switching_asr": 0.0,
     "long_form_asr": 0.1,
 
     # Paralinguistics
@@ -117,7 +118,7 @@ mtbench_temp_map = {
 allowed_task_metrics = {
     # ASR
     'asr': ['word_error_rate', 'meteor', 'bleu', 'bertscore'],
-    'code_switching_asr': ['word_error_rate', 'codeswitched_wer', 'llm_judge_aer', 'meteor', 'bleu', 'bertscore'],
+    'code_switching_asr': ['word_error_rate', 'codeswitched_wer', 'llm_judge_aer', 'llm_judge_ser', 'meteor', 'bleu', 'bertscore'],
     'long_form_asr': ['word_error_rate', 'meteor', 'bleu', 'bertscore'],
 
     # Paralinguistics
@@ -157,7 +158,8 @@ metric_output = {
     "llm_judge_detailed": ["llm_judge_detailed"],
     "word_error_rate": ["average_sample_wer", "overall_wer"],
     "codeswitched_wer": ["cs_wer_records_counted"],
-    "llm_judge_aer": ["aer_per_row"],
+    "llm_judge_aer": ["overall_aer", "aer_per_row"],
+    "llm_judge_ser": ["overall_ser", "average_sample_ser"],
     "bertscore": ["bertscore"],
     "bleu": ["BLEU"],
     "llm_judge_callhome": ["llm_judge_callhome"],

@@ -19,7 +19,7 @@ from postprocessors.general_postprocessor import GeneralPostprocessor
 logger = logging.getLogger(__name__)
 
 _EXTRACTOR_HELPER_NAME = "aer_extractor"
-_PROMPT_PATH = Path(__file__).resolve().parents[1] / "prompts/pipeline_prompts.yaml"
+_PROMPT_PATH = Path(__file__).resolve().parents[1] / "prompts/judge_prompts.yaml"
 
 
 def _load_extraction_prompt() -> str:
