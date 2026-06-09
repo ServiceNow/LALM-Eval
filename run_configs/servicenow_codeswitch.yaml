@@ -1,24 +1,20 @@
 task_metric:
-  - ["servicenow_cs_en_es", "word_error_rate"]
-  - ["servicenow_cs_en_fr", "word_error_rate"]
-  - ["servicenow_cs_en_fr_ca", "word_error_rate"]
-  - ["servicenow_cs_en_de", "word_error_rate"]
-  - ["servicenow_cs_en_es", "codeswitched_wer"]
-  - ["servicenow_cs_en_fr", "codeswitched_wer"]
-  - ["servicenow_cs_en_fr_ca", "codeswitched_wer"]
-  - ["servicenow_cs_en_de", "codeswitched_wer"]
-  - ["servicenow_cs_en_es", "llm_judge_aer"]
-  - ["servicenow_cs_en_fr", "llm_judge_aer"]
-  - ["servicenow_cs_en_fr_ca", "llm_judge_aer"]
-  - ["servicenow_cs_en_de", "llm_judge_aer"]
-  - ["servicenow_cs_en_es", "llm_judge_ser"]
-  - ["servicenow_cs_en_fr", "llm_judge_ser"]
-  - ["servicenow_cs_en_fr_ca", "llm_judge_ser"]
-  - ["servicenow_cs_en_de", "llm_judge_ser"]
+  - ["servicenow_cs", "word_error_rate"]
+  - ["servicenow_cs", "codeswitched_wer"]
+  - ["servicenow_cs", "llm_judge_aer"]
+  - ["servicenow_cs", "llm_judge_ser"]
+
+aggregate:
+  - ["word_error_rate", ["servicenow_cs"]]
+  - ["codeswitched_wer", ["servicenow_cs"]]
+  - ["llm_judge_aer", ["servicenow_cs"]]
+  - ["llm_judge_ser", ["servicenow_cs"]]
 
 logging:
   log_file: servicenow_cs_results.log
 
+filter:
+  num_samples: 5
 
 models:
   - name: whisper-large-v3-turbo
