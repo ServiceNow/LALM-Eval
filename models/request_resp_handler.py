@@ -232,7 +232,14 @@ class RequestRespHandler:
                     )
                 
                 raw_response: str = self._extract_response_data(prediction)
-                llm_response: str = raw_response['choices'][0]['message']['content'] or " "
+                message_data = raw_response['choices'][0]['message']
+                # Some vLLM-served models (e.g. Qwen3) return content=null and put all
+                # output in the `reasoning` field; fall back to it when content is absent.
+                llm_response: str = (
+                    message_data.get('content')
+                    or message_data.get('reasoning')
+                    or " "
+                )
 
                 # Find the user message to extract input prompt
                 user_prompt = ""

@@ -130,8 +130,16 @@ class BfclPreprocessor(Preprocessor):
 
             required_fields = {
                 tool['name']: [
-                    (param, tool['parameters']['properties'][param]['type'])
-                    for param in tool['parameters']['required']
+                    (
+                        param,
+                        props[param]['type'],
+                        props[param].get('items', {}).get('type'),   # nested element type (for array/tuple)
+                        param in tool['parameters'].get('required', []),  # True = required, False = optional
+                    )
+                    for param, props in [
+                        (p, tool['parameters']['properties'])
+                        for p in tool['parameters']['properties']
+                    ]
                 ]
                 for tool in function
             }
