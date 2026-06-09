@@ -7,7 +7,8 @@ import statistics
 import yaml
 from pathlib import Path
 from typing import Any, Dict
-from . import constants
+from utils import constants
+from utils.constants import SUPPORTED_ROLES
 from utils.custom_logging import configure
 from utils.task_utils import _validate_task_metric_pairs, get_groups, get_tasks 
 
@@ -232,8 +233,8 @@ def _validate_models(config: Dict) -> None:
         for field, field_type in optional_fields.items():
             if field in info and not isinstance(info[field], field_type):
                 raise ValueError(f"Model {index}: '{field}' must be of type {field_type.__name__}")
-        if 'role' in info and info['role'] not in ('target', 'helper'):
-            raise ValueError(f"Model {index}: 'role' must be 'target' or 'helper'")
+        if 'role' in info and info['role'] not in SUPPORTED_ROLES:
+            raise ValueError(f"Model {index}: 'role' must be one of {list(SUPPORTED_ROLES)}")
     if 'models' not in config or not isinstance(config['models'], list):
         raise ValueError("'models' section is required and must be a list")
     for i, model_entry in enumerate(config['models'], start=1):

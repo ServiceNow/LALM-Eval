@@ -1,8 +1,5 @@
-task_name: servicenow_cs_en_fr
-extends: ["./base.yaml#"]
+extends: ["../base.yaml#"]
 dataset_path: ServiceNow-AI/asr_codeswitched
-subset: en_fr
-language: en/fr
 audio_column: audio
 target_column: utterance
 postprocessor: CodeSwitchAerPostprocessor

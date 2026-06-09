@@ -131,8 +131,8 @@ class WERMetrics(Metrics):
 
         # Initialize the result with both WER metrics
         result = {
-            "average_sample_wer": util.smart_round(avg_sample_wer, 4),
-            "overall_wer": util.smart_round(overall_wer, 4)
+            "average_sample_wer": util.smart_round(avg_sample_wer * 100.0, 2),
+            "overall_wer": util.smart_round(overall_wer * 100.0, 2)
         }
 
         if ids and len(ids) == len(scores["wer_per_row"]):

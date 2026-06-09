@@ -18,6 +18,11 @@ from metrics.wer.normalizers import JapaneseTextNormalizer
 from metrics.wer.whisper_normalizer.basic import BasicTextNormalizer
 from metrics.wer.whisper_normalizer.english import EnglishTextNormalizer
 
+# Model roles
+ROLE_TARGET = 'target'
+ROLE_HELPER = 'helper'
+SUPPORTED_ROLES = (ROLE_TARGET, ROLE_HELPER)
+
 # Inference server types
 INFERENCE_SERVER_VLLM_CHAT_COMPLETION = 'vllm'
 OPENAI_CHAT_COMPLETION = 'openai'

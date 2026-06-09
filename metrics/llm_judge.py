@@ -12,6 +12,7 @@ from typing import List, Tuple, Optional, Dict, Union
 import httpx
 import regex as _regex
 import yaml
+from jinja2 import Template
 from openai import AsyncAzureOpenAI, AsyncOpenAI, APIConnectionError
 from tqdm import tqdm
 
@@ -269,7 +270,7 @@ class _BaseLLMJudge(Metrics):
                 # Support prompts split into system/user sub-keys
                 if isinstance(sys_prompt_template, dict) and "system" in sys_prompt_template and "user" in sys_prompt_template:
                     sys_prompt = sys_prompt_template["system"]
-                    user_prompt = sys_prompt_template["user"].replace("{{reference}}", str(ref)).replace("{{hypothesis}}", str(cand))
+                    user_prompt = Template(sys_prompt_template["user"]).render(reference=str(ref), hypothesis=str(cand))
                 else:
                     sys_prompt = sys_prompt_template
                     user_prompt = f"candidate: {cand}\nreference: {ref}"

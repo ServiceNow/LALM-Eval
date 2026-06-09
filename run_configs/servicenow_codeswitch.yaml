@@ -19,6 +19,9 @@ task_metric:
 logging:
   log_file: servicenow_cs_results.log
 
+filter:
+  num_samples: 5
+
 models:
   - name: whisper-large-v3-turbo
     inference_type: transcription
@@ -36,7 +39,7 @@ models:
   - name: aer_extractor
     role: helper
     inference_type: openai_chat_completion
-    model: gpt-4o-mini
+    model: gpt-4o
     url: ${EXTRACTOR_ENDPOINT_URL}
     auth_token: ${EXTRACTOR_AUTH_TOKEN}
     api_version: ${EXTRACTOR_API_VERSION}
