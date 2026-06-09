@@ -67,7 +67,7 @@ def configure(log_file: str):
 
 def write_record_log(
     self, refs, cands, scores, task_name, model_name,
-    explanations=None, instructions=None, model_responses=None
+    explanations=None, instructions=None, model_responses=None, extras=None
 ):
     """
     Write record-level logs to a file specific to the dataset, metric, and model.
@@ -82,6 +82,8 @@ def write_record_log(
         explanations: Optional list of explanations for each score
         instructions: Optional list of instructions
         model_responses: Optional list of ModelResponse objects with detailed info
+        extras: Optional dict mapping column name -> per-record list of values,
+            appended after the standard columns
     """
     if not refs or not scores:
         return
@@ -115,6 +117,8 @@ def write_record_log(
         "error_timeout", "error_server", "error_other",
         "is_final_score"
     ]
+    extra_columns = list(extras.keys()) if extras else []
+    headers = headers + extra_columns
 
     with open(log_path, "w", encoding="utf-8", newline='') as f:
         writer = csv.writer(f, delimiter=',', quoting=csv.QUOTE_ALL)
@@ -164,6 +168,10 @@ def write_record_log(
                     )
                     row_values[header_to_index["error_server"]] = resp.error_tracker.internal_server
                     row_values[header_to_index["error_other"]] = resp.error_tracker.other
+
+            for col in extra_columns:
+                values = extras.get(col, [])
+                row_values[header_to_index[col]] = values[i] if i < len(values) else ""
 
             # Write the row
             writer.writerow(row_values)

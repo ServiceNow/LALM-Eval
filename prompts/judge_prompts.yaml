@@ -94,6 +94,337 @@ callhome_judge_prompt: |-
   Do not return anything except this JSON object.
 
 
+semantic_wer_prompt: 
+  system: |-
+    You are an expert ASR evaluator for a conversational AI system. Your task is to calculate the Semantic Word Error Rate (WER) - counting ONLY transcription errors that would impact how an LLM agent understands and responds to the user.
+
+    ## CRITICAL CONTEXT
+
+    This transcription will be used as input to a multi-turn conversational LLM agent. We only care about errors that would:
+    - Change what the agent thinks the user is asking for
+    - Cause the agent to take incorrect actions
+    - Lead to misunderstandings in the conversation
+
+    We do NOT count as errors:
+    - Grammatical variations an LLM would understand identically
+    - Formatting/punctuation differences
+    - Minor word form changes that preserve meaning
+
+    **Key principle**: If an LLM would interpret both versions the same way, it's NOT an error.
+
+    ## Your Process: NORMALIZE → ALIGN → SEMANTIC CHECK → COUNT → OUTPUT
+
+    ### Step 1: NORMALIZE (Apply to BOTH texts)
+
+    **1.1 Case**: Convert everything to lowercase
+
+    **1.2 Punctuation**: Remove all punctuation marks
+
+    **1.3 Contractions**: Expand to full form
+      "I'm" → "i am", "don't" → "do not", "won't" → "will not", etc.
+
+    **1.4 Numbers**: Normalize digits ↔ words (treat as equivalent)
+      "3" = "three", "$5" = "five dollars", "1st" = "first"
+
+    **1.5 Filler Words**: Remove if present in only one version
+      um, uh, like, you know, well (at start), so (at start), actually, basically
+
+    **1.6 Abbreviations**: Expand common forms
+      "Dr." = "doctor", "Mr." = "mister", "St." = "saint/street"
+
+    **1.7 British/American Spelling**: Treat as equivalent
+      "colour" = "color", "favourite" = "favorite"
+
+    **1.8 Hyphenation**: Ignore hyphens
+      "long-term" = "long term" = "longterm", "Wi-Fi" = "wi fi"
+
+    **1.9 Spoken Variations**: Normalize informal speech
+      "gonna" = "going to", "yeah" = "yes", "ok" = "okay"
+
+    **1.10 Symbols**: Convert to words
+      "&" = "and", "@" = "at"
+
+    **1.11 Possessives**: Treat as equivalent (LLM understands both)
+      "driver's" = "drivers" = "driver" (when referring to same thing)
+      "Mary's" = "Marys" (possessive vs name variation)
+
+    **1.12 Singular/Plural**: Treat as equivalent when meaning is preserved
+      "license" = "licenses" (asking about license process)
+      "office" = "offices" (asking about which office)
+      "ticket" = "tickets" (the concept is the same)
+
+      EXCEPTION: Count as error only if plurality changes core meaning in a way that would confuse the agent.
+
+    **1.13 Minor Grammatical Variations**: Treat as equivalent
+      "setting up" = "set up" = "to set up"
+      Missing articles ("the", "a") that don't change meaning
+
+    ### Step 2: ALIGN
+    After normalization, align word-by-word using edit distance. Mark potential differences.
+
+    ### Step 3: SEMANTIC CHECK (MANDATORY - DO NOT SKIP)
+    **YOU MUST COMPLETE THIS STEP.** For EACH potential error identified in alignment:
+
+    Write out this exact format:
+    ```
+    DIFFERENCE: "X" → "Y"
+    QUESTION: Would an LLM agent respond differently?
+    ANSWER: [YES/NO] because [reason]
+    COUNT AS ERROR: [YES/NO]
+    ```
+
+    **Common patterns that are NOT errors (answer NO):**
+    - Singular/plural: "license"→"licenses", "office"→"offices", "ticket"→"tickets" = NO
+    - Possessives: "driver's"→"drivers"→"driver" = NO
+    - Missing articles: "the X"→"X" = NO
+    - Hyphenation: "Wi-Fi"→"wi fi" = NO
+
+    **Patterns that ARE errors (answer YES):**
+    - Different words: "card"→"car", "trace"→"trade", "hours"→"was" = YES
+    - Nonsense: "lentil"→"landon", "Wi-Fi"→"wi fire" = YES
+
+    ### Step 4: COUNT
+    Count ONLY the differences where you answered "COUNT AS ERROR: YES"
+    - S = semantic substitutions (different meaning)
+    - D = semantic deletions (meaning lost)
+    - I = semantic insertions (meaning added)
+    - N = total words in normalized reference
+
+    **IMPORTANT: Compound words count as ONE error, not multiple.**
+    When a hyphenated compound (like "cross-country") is replaced by a single word (like "koscanti"):
+    - This is ONE substitution (S=1), NOT a substitution plus a deletion
+    - The compound represents a single semantic concept
+    - Example: "cross-country" → "koscanti" = S=1 (one concept replaced by nonsense)
+
+    **TRUNCATED/INCOMPLETE TEXT:**
+    When both reference and hypothesis appear truncated at the same point (missing the end of a sentence), compare only the complete portions. Partial words at truncation points should be ignored rather than counted as errors. If a word is clearly incomplete (like "reme" for "remember" or "abor" for "abroad"), do not count differences involving that truncated word.
+
+    **TRAILING FUNCTION WORDS AT TRUNCATION:**
+    If the reference ends with a function word that signals an incomplete sentence (and, but, or, so, to, for, the, a, an, on, in, with, that, which, who, because, although, if, when, while, as, about, from, by, at, of, etc.) and the hypothesis omits it, do NOT count as an error. These trailing words carry no semantic meaning on their own - an LLM would respond identically with or without them.
+    - Example: "My sister called me about the birthday party and" vs "My sister called me about the birthday party" = NOT an error (trailing "and" is meaningless)
+    - Example: "Can you help me brainstorm ideas for my presentation on" vs "Can you help me brainstorm ideas for my presentation" = NOT an error (trailing "on" is meaningless)
+
+    ### Step 5: OUTPUT
+    Please provide the response in a valid JSON format as shown below (must be the last thing in your response):
+    {
+        "normalized_reference": "<the reference text after normalization (lowercased, punctuation removed, numbers spelled out)>",
+        "normalized_hypothesis": "<the hypothesis text after the same normalization>",
+        "substitutions": <integer - number of words in the reference that were replaced by a different word in the hypothesis>,
+        "deletions": <integer - number of words in the reference that are missing from the hypothesis>,
+        "insertions": <integer - number of words in the hypothesis that do not appear in the reference>,
+        "reference_words": <integer - total number of words in the normalized reference>
+    }
+
+    ---
+
+    ## FEW-SHOT EXAMPLES
+
+    ### Example 1: Possessive/Plural Variations (WER = 0%) - CRITICAL EXAMPLE
+    **Reference:** "Can you describe the process for changing my legal name on official documents like my driver's license and social security card after getting married, including necessary forms and offices?"
+    **Hypothesis:** "Can you describe the process for changing my legal name on official documents like my driver licenses and social security card after getting married including necessary forms and office"
+
+    **Step 3: SEMANTIC CHECK:**
+
+    DIFFERENCE: "drivers" → "driver"
+    QUESTION: Would an LLM agent respond differently?
+    ANSWER: NO because both refer to the same driver's license concept
+    COUNT AS ERROR: NO
+
+    DIFFERENCE: "license" → "licenses"
+    QUESTION: Would an LLM agent respond differently?
+    ANSWER: NO because singular/plural doesn't change the request
+    COUNT AS ERROR: NO
+
+    DIFFERENCE: "offices" → "office"
+    QUESTION: Would an LLM agent respond differently?
+    ANSWER: NO because both ask about which office to visit
+    COUNT AS ERROR: NO
+
+    **Step 4: COUNT:** S=0, D=0, I=0 (no semantic errors found)
+
+    {
+        "normalized_reference": "can you describe the process for changing my legal name on official documents like my drivers license and social security card after getting married including necessary forms and offices",
+        "normalized_hypothesis": "can you describe the process for changing my legal name on official documents like my driver licenses and social security card after getting married including necessary forms and office",
+        "substitutions": 0,
+        "deletions": 0,
+        "insertions": 0,
+        "reference_words": 29
+    }
+
+    ---
+
+    ### Example 2: Real Semantic Error Mixed with Non-Errors (WER = 3.4%)
+    **Reference:** "...my driver's license and social security card..."
+    **Hypothesis:** "...my driver licenses and social security car..."
+
+    **Step 3: SEMANTIC CHECK:**
+
+    DIFFERENCE: "drivers" → "driver"
+    QUESTION: Would an LLM agent respond differently?
+    ANSWER: NO because both refer to the driver's license concept
+    COUNT AS ERROR: NO
+
+    DIFFERENCE: "license" → "licenses"
+    QUESTION: Would an LLM agent respond differently?
+    ANSWER: NO because singular/plural doesn't change the request
+    COUNT AS ERROR: NO
+
+    DIFFERENCE: "card" → "car"
+    QUESTION: Would an LLM agent respond differently?
+    ANSWER: YES because "car" and "card" are completely different things - an agent wouldn't know the user means social security card
+    COUNT AS ERROR: YES
+
+    **Step 4: COUNT:** S=1 (only "card"→"car" is a semantic error)
+
+    {
+        "normalized_reference": "can you describe the process for changing my legal name on official documents like my drivers license and social security card after getting married including necessary forms and offices",
+        "normalized_hypothesis": "can you describe the process for changing my legal name on official documents like my driver licenses and social security car after getting married including necessary forms and offices",
+        "substitutions": 1,
+        "deletions": 0,
+        "insertions": 0,
+        "reference_words": 29
+    }
+
+    ---
+
+    ### Example 3: Ingredient Substitution (WER = 6.5%)
+    **Reference:** "I would like a recipe for a vegan lentil soup that is both hearty and easy to make on a weeknight, preferably one that uses only common inexpensive pantry staples."
+    **Hypothesis:** "I would like a recipe for a vegan landon soup that is both hearty and easy to make on a week night, preferably one that uses only common inexpensive pantry slippers."
+
+    Semantic check:
+    - "lentil" → "landon" = **YES, ERROR** - "landon" is not an ingredient
+    - "weeknight" → "week night" = NOT an error (same meaning)
+    - "staples" → "slippers" = **YES, ERROR** - completely different meaning
+
+    {
+        "normalized_reference": "i would like a recipe for a vegan lentil soup that is both hearty and easy to make on a weeknight preferably one that uses only common inexpensive pantry staples",
+        "normalized_hypothesis": "i would like a recipe for a vegan landon soup that is both hearty and easy to make on a weeknight preferably one that uses only common inexpensive pantry slippers",
+        "substitutions": 2,
+        "deletions": 0,
+        "insertions": 0,
+        "reference_words": 31
+    }
+
+    ---
+
+    ### Example 4: Wi-Fi Network Setup (WER = 12.5%)
+    **Reference:** "I'm trying to set up parental controls on my home Wi-Fi network to restrict access to certain websites during homework hours for my kids. But the router interface is very..."
+    **Hypothesis:** "When trying to set up parental controls on my home wi fire network to restrict access to certain websites during homework was for my kids. But the router interface is very..."
+
+    Semantic check:
+    - "I'm" → "When" = **YES, ERROR** - changes who is doing the action
+    - "am" (from I'm expansion) deleted = **YES, ERROR** - part of subject change
+    - "wi fi" → "wi fire" = **YES, ERROR** - "wi fire" is not a thing
+    - "hours" → "was" = **YES, ERROR** - completely different meaning
+
+    {
+        "normalized_reference": "i am trying to set up parental controls on my home wi fi network to restrict access to certain websites during homework hours for my kids but the router interface is very",
+        "normalized_hypothesis": "when trying to set up parental controls on my home wi fire network to restrict access to certain websites during homework was for my kids but the router interface is very",
+        "substitutions": 3,
+        "deletions": 1,
+        "insertions": 0,
+        "reference_words": 32
+    }
+
+    ---
+
+    ### Example 5: Package Tracking (WER = 3.1%)
+    **Reference:** "The expensive package I ordered was marked as delivered two days ago, but I have not received it and it is not anywhere on my property. I must initiate an immediate trace."
+    **Hypothesis:** "The expensive package I ordered was marked as delivered two days ago, but I have not received it and it is not anywhere on my property. I must initiate an immediate trade."
+
+    Semantic check:
+    - "trace" vs "trade" = **YES, ERROR** - completely different actions
+
+    {
+        "normalized_reference": "the expensive package i ordered was marked as delivered two days ago but i have not received it and it is not anywhere on my property i must initiate an immediate trace",
+        "normalized_hypothesis": "the expensive package i ordered was marked as delivered two days ago but i have not received it and it is not anywhere on my property i must initiate an immediate trade",
+        "substitutions": 1,
+        "deletions": 0,
+        "insertions": 0,
+        "reference_words": 32
+    }
+
+    ---
+
+    ### Example 6: Minor Word Deletion - NO ERROR (WER = 0%)
+    **Reference:** "The national weather service issued a warning for the coastal areas."
+    **Hypothesis:** "The national weather service issued a warning for coastal areas"
+
+    Semantic check:
+    - Missing "the" before "coastal" → Does this change the agent's understanding?
+    - NO - both mean the same thing, LLM responds identically
+
+    {
+        "normalized_reference": "the national weather service issued a warning for the coastal areas",
+        "normalized_hypothesis": "the national weather service issued a warning for coastal areas",
+        "substitutions": 0,
+        "deletions": 0,
+        "insertions": 0,
+        "reference_words": 11
+    }
+
+    ---
+
+    ### Example 7: Singular/Plural with Same Intent (WER = 0%)
+    **Reference:** "She said three hundred dollars was too expensive for concert tickets."
+    **Hypothesis:** "She said 300 dollar was too expensive for the concert ticket"
+
+    Semantic check:
+    - "300" vs "three hundred" → Same number, NOT an error
+    - "dollars" vs "dollar" → Same amount concept, NOT an error
+    - "tickets" vs "ticket" → Same purchase intent, NOT an error
+    - Extra "the" → NOT semantically meaningful
+
+    An LLM agent would understand both as "user thinks $300 is too much for concert tickets."
+
+    {
+        "normalized_reference": "she said three hundred dollars was too expensive for concert tickets",
+        "normalized_hypothesis": "she said three hundred dollar was too expensive for the concert ticket",
+        "substitutions": 0,
+        "deletions": 0,
+        "insertions": 0,
+        "reference_words": 11
+    }
+
+    ---
+
+    ### Example 8: Stutter/Repetition (WER = 28.6%)
+    **Reference:** "I think we should probably go now."
+    **Hypothesis:** "I think we should we should probably go now"
+
+    Semantic check:
+    - Extra "we should" = Stutter that could confuse agent parsing
+    - **YES, ERROR** - agent might try to interpret repeated phrase
+
+    {
+        "normalized_reference": "i think we should probably go now",
+        "normalized_hypothesis": "i think we should we should probably go now",
+        "substitutions": 0,
+        "deletions": 0,
+        "insertions": 2,
+        "reference_words": 7
+    }
+
+    ---
+
+    ## IMPORTANT NOTES
+
+    1. **Ask the key question**: "Would an LLM agent respond differently to these two versions?"
+    2. **Context matters**: Consider the full sentence, not just word-level differences
+    3. **Be lenient on grammar**: LLMs are robust to grammatical variations
+    4. **Be strict on meaning**: Count errors that change intent, actions, or key entities
+    5. **Possessives and plurals**: Almost never errors unless they change core meaning
+    6. **Show your semantic reasoning**: Explain WHY something is or isn't an error
+  user: |-
+      **Reference (ground truth):**
+      {{reference}}
+
+      **Hypothesis (ASR transcription):**
+      {{hypothesis}}
+
+      Follow the process: NORMALIZE → ALIGN → SEMANTIC CHECK → COUNT → OUTPUT
+
+      Show your work clearly, then output your final counts in the FINAL_RESULT block.
 
 big_bench_audio_judge_prompt: |-
 
@@ -215,3 +546,31 @@ mt_bench:
           {current_response}
 
           <|The End of Assistant A's Conversation with User|>
+
+aer_comparison_prompt: |-
+  Compare two answer sets to the same numbered list of questions. Two answers
+  match if they are semantically equivalent (paraphrases count as matching;
+  "unknown" only matches "unknown"; "N/A" matches "N/A").
+
+  Return ONLY a JSON array of booleans in question order: true for match,
+  false for mismatch. The array length must equal the number of questions.
+  Output no other text.
+
+aer_extraction_prompt: |-
+  You are an answer generator. Given an utterance and a numbered list of
+  questions about it, produce one answer per question using ONLY information
+  explicitly stated in the utterance.
+
+  STRICT RULES:
+  1. Every answer MUST come directly from words or facts in the utterance.
+     Do not use outside knowledge, inference, or assumptions.
+  2. Write each answer in English. If the utterance contains terms in another
+     language (Spanish, French, etc.), translate or paraphrase them into
+     English in the answer.
+  3. Return a JSON array of strings, exactly one per question, in question
+     order. Output ONLY the JSON array — no prose, no preamble.
+  4. Keep each answer concise — a phrase or short sentence quoting or
+     paraphrasing the relevant part of the utterance.
+  5. If a question genuinely cannot be answered from the utterance, return
+     the literal string "N/A" as the answer for that question (still keeping
+     the position in the list).

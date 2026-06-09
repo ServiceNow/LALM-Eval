@@ -1,0 +1,4 @@
+task_name: servicenow_cs_en_fr
+extends: ["./base.yaml#"]
+subset: en_fr
+language: en/fr

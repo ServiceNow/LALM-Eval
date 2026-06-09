@@ -52,8 +52,14 @@ class Engine:
         # Load the postprcessor
         self.postprocessor = self.get_postprocessor(self.task_config)
 
-        # Group models by their model attribute for sharding
-        self.model_groups = self.get_model_groups(models)
+        # Partition helpers (pipeline infra) from benchmark targets. Helpers are
+        # not scored — they are exposed to postprocessors by name.
+        benchmark_models = [m for m in models if getattr(m, "role", "target") != "helper"]
+        helper_models = [m for m in models if getattr(m, "role", "target") == "helper"]
+        self.postprocessor.helpers = {m.name(): m for m in helper_models}
+
+        # Group benchmark models by their model attribute for sharding
+        self.model_groups = self.get_model_groups(benchmark_models)
         
     def get_dataset(self, task_config, task_name):
         """
@@ -389,6 +395,13 @@ class Engine:
             async def score_model_with_tokens(model_name, outs):
                 metric = metric_instances[model_name]
                 model_responses = raw_predictions.get(model_name, [])
+                if metric_name == 'codeswitched_wer':
+                    metric.contexts = self.dataset
+                # AER needs dataset access purely for record-level logging
+                # (transcript / extracted answers / expected answers side-by-side).
+                # Core scoring uses only the candidate and reference JSON arrays.
+                if metric_name == 'llm_judge_aer':
+                    metric.contexts = self.dataset
                 # Check if this is an LLM judge
                 if is_llm_judge:
                     # For LLM judges, set the request manager

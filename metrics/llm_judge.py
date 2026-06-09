@@ -10,7 +10,9 @@ from pathlib import Path
 from typing import List, Tuple, Optional, Dict, Union
 
 import httpx
+import regex as _regex
 import yaml
+from jinja2 import Template
 from openai import AsyncAzureOpenAI, AsyncOpenAI, APIConnectionError
 from tqdm import tqdm
 
@@ -20,6 +22,48 @@ from utils import util
 from utils.custom_logging import write_record_log, append_final_score
 
 logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Helper to pull a JSON object/array out of messy LLM responses (e.g. when the
+# judge interleaves reasoning around the structured output we asked for).
+# ---------------------------------------------------------------------------
+
+_JSON_START = re.compile(r"[{[]")
+_STRAY_BACKSLASH_CHARS = "_+-[]*'$"
+_UNESCAPED_BACKSLASH = re.compile(
+    r"""(?<!\\)(?=\\(?!["/bfnrt]|u[0-9A-Fa-f]{4}|\\(?:\\\\)*(?!\\)))""",
+    re.VERBOSE,
+)
+_UNESCAPED_DOUBLE_QUOTE = _regex.compile(
+    r"""(?<![,:[{]\s*|(?<!\\)\\)(?="(?!\s*[,:\]}]))""",
+    _regex.VERBOSE,
+)
+
+
+def _extract_json(text: str) -> dict | list | None:
+    """Extract the first JSON object/array from messy text, or None."""
+    if not text:
+        return None
+
+    text = re.sub(rf"\\\\([{re.escape(_STRAY_BACKSLASH_CHARS)}])", r"\1", text)
+    text = re.sub(rf"\\([{re.escape(_STRAY_BACKSLASH_CHARS)}])", r"\1", text)
+
+    repaired = _UNESCAPED_BACKSLASH.sub(r"\\", _UNESCAPED_DOUBLE_QUOTE.sub(r"\\", text))
+    for candidate in (text, repaired):
+        decoder = json.JSONDecoder()
+        pos = 0
+        while m := _JSON_START.search(candidate, pos):
+            try:
+                obj, _end = decoder.raw_decode(candidate, m.start())
+            except json.JSONDecodeError:
+                pos = m.start() + 1
+                continue
+            if isinstance(obj, (dict, list)):
+                return obj
+            pos = m.start() + 1
+
+    return None
+
 
 # ---------------------------------------------------------------------------
 # Helper to load prompt templates shipped with the package
@@ -223,10 +267,13 @@ class _BaseLLMJudge(Metrics):
             await token_sem.acquire()
 
             try:
-                # Use the prompt template as system prompt
-                sys_prompt = sys_prompt_template
-                # Format candidate and reference as user prompt
-                user_prompt = f"candidate: {cand}\nreference: {ref}"
+                # Support prompts split into system/user sub-keys
+                if isinstance(sys_prompt_template, dict) and "system" in sys_prompt_template and "user" in sys_prompt_template:
+                    sys_prompt = sys_prompt_template["system"]
+                    user_prompt = Template(sys_prompt_template["user"]).render(reference=str(ref), hypothesis=str(cand))
+                else:
+                    sys_prompt = sys_prompt_template
+                    user_prompt = f"candidate: {cand}\nreference: {ref}"
 
                 # Call the scoring function
                 result = await self._score_once(sys_prompt, user_prompt)
@@ -922,3 +969,220 @@ class MtbenchLLMJudgeMetric(_BaseLLMJudge):
         # Expect {"score": number, "explanation": str}
         self.explanations = [""] * len(candidates)
         return {self.name: raw_scores}
+
+
+# ---------------------------------------------------------------------------
+# Answer Error Rate (AER) — judges two parallel answer arrays. The transcript
+# -> answers extraction step is upstream (CodeSwitchAerPostprocessor).
+# ---------------------------------------------------------------------------
+
+class AERJudgeMetric(_BaseLLMJudge):
+    name: str = "llm_judge_aer"
+    display_name: str = "Answer Error Rate"
+    description: str = "Fraction of questions where the ASR transcript leads to an incorrect answer."
+    higher_is_better: bool = False
+    range: tuple = (0, 1)
+    _prompt_key: str = "aer_comparison_prompt"
+
+    def __init__(self, *_, judge_properties: Dict | None = None, **__):
+        super().__init__(judge_properties=judge_properties)
+        self.model_responses = []
+        self.instructions = None
+        self._mismatches: list[int | None] = []
+        self._questions: list[int | None] = []
+
+    async def __call__(self, candidates, references, instructions=None, *,
+                       task_name=None, model_name=None, model_responses=None):
+        self.instructions = instructions
+        self.model_responses = model_responses or []
+        overall = await self.get_score(candidates, references, task_name, model_name)
+        if task_name and model_name:
+            scores = self.record_level_scores.get("aer_per_row", [])
+            extras = self._build_log_extras(len(scores))
+            write_record_log(self, references, candidates, scores, task_name, model_name,
+                             instructions=self.instructions, model_responses=self.model_responses,
+                             extras=extras)
+            append_final_score(self, overall, task_name, model_name, self.model_responses)
+        return overall
+
+    async def get_score(self, candidates, references, task_name=None, model_name=None) -> dict:
+        if not self.record_level_scores:
+            self.record_level_scores = await self.compute_record_level_scores(
+                candidates, references, task_name, model_name
+            )
+
+        per_row = self.record_level_scores.get("aer_per_row", [])
+        total_miss = sum(m for m in self._mismatches if m is not None)
+        total_q = sum(q for q in self._questions if q)
+        overall_aer = total_miss / total_q if total_q > 0 else 0.0
+        scored = [s for s in per_row if s is not None]
+        average_sample_aer = sum(scored) / len(scored) if scored else 0.0
+
+        return {
+            "overall_aer": util.smart_round(overall_aer, 4),
+            "aer_per_row": util.smart_round(average_sample_aer, 4),
+        }
+
+    def _build_log_extras(self, n: int) -> dict:
+        """Pull transcript / extracted answers off dataset records for side-by-side logging."""
+        contexts = getattr(self, "contexts", None) or []
+        transcripts = [contexts[i].get("_aer_transcript", "") if i < len(contexts) else "" for i in range(n)]
+        extracted = [contexts[i].get("_aer_extracted_answers", "") if i < len(contexts) else "" for i in range(n)]
+        return {"transcript": transcripts, "extracted_answers": extracted}
+
+    async def compute_record_level_scores(self, candidates, references,
+                                          task_name=None, model_name=None):
+        raw_results = await self._judge_all(candidates, references, task_name, model_name)
+        aer_scores: list[float | None] = []
+        misses: list[int | None] = []
+        qs: list[int | None] = []
+        for cand_json, raw in zip(candidates, raw_results):
+            n_expected = _aer_safe_len(cand_json)
+            matches = _aer_parse_bool_array(raw, n_expected)
+            if matches is None:
+                aer_scores.append(None)
+                misses.append(None)
+                qs.append(None)
+            else:
+                m = sum(1 for x in matches if not x)
+                aer_scores.append(m / len(matches))
+                misses.append(m)
+                qs.append(len(matches))
+        self._mismatches = misses
+        self._questions = qs
+        return {"aer_per_row": aer_scores}
+
+
+def _aer_safe_len(json_array_str: str) -> int:
+    try:
+        parsed = json.loads(json_array_str)
+        return len(parsed) if isinstance(parsed, list) else 0
+    except (json.JSONDecodeError, TypeError):
+        return 0
+
+
+def _aer_parse_bool_array(raw, n_expected: int) -> list[bool] | None:
+    if isinstance(raw, list):
+        parsed = raw
+    elif isinstance(raw, str):
+        parsed = _extract_json(raw)
+        if parsed is None:
+            # Judges sometimes capitalize True/False; lowercase and retry.
+            parsed = _extract_json(raw.lower())
+    else:
+        return None
+    if not isinstance(parsed, list):
+        return None
+    if n_expected and len(parsed) != n_expected:
+        return None
+    return [bool(x) for x in parsed]
+
+
+# ---------------------------------------------------------------------------
+# Semantic Word Error Rate (SER) — judge counts insertions/deletions/
+# substitutions and reports the reference word count. Per-row SER = (S+D+I)/N.
+# Aggregates mirror WER: overall_ser (micro) and average_sample_ser (macro).
+# ---------------------------------------------------------------------------
+
+class SERJudgeMetric(_BaseLLMJudge):
+    name: str = "llm_judge_ser"
+    display_name: str = "Semantic Word Error Rate"
+    description: str = "Semantic WER computed from judge-reported insertion/deletion/substitution counts."
+    higher_is_better: bool = False
+    range: tuple = (0, 1)
+    _prompt_key: str = "semantic_wer_prompt"
+
+    def __init__(self, *_, judge_properties: Dict | None = None, **__):
+        super().__init__(judge_properties=judge_properties)
+        self.instructions = None
+        self.model_responses = []
+        self._numerators: list[int | None] = []
+        self._denominators: list[int | None] = []
+        self._judge_raw: list[str] = []
+        self._parse_failures: int = 0
+
+    async def __call__(self, candidates, references, instructions=None, *,
+                       task_name=None, model_name=None, model_responses=None):
+        self.instructions = instructions
+        self.model_responses = model_responses or []
+        overall = await self.get_score(candidates, references, task_name, model_name)
+        if task_name and model_name:
+            scores = self.record_level_scores.get("ser_per_row", [])
+            extras = {"judge_raw": self._judge_raw}
+            write_record_log(self, references, candidates, scores, task_name, model_name,
+                             instructions=self.instructions, model_responses=self.model_responses,
+                             extras=extras)
+            append_final_score(self, overall, task_name, model_name, self.model_responses)
+        return overall
+
+    async def get_score(self, candidates, references, task_name=None, model_name=None) -> dict:
+        if not self.record_level_scores:
+            self.record_level_scores = await self.compute_record_level_scores(
+                candidates, references, task_name, model_name
+            )
+
+        per_row = self.record_level_scores.get("ser_per_row", [])
+        total_num = sum(n for n in self._numerators if n is not None)
+        total_den = sum(d for d in self._denominators if d)
+        overall_ser = total_num / total_den if total_den > 0 else 0.0
+        scored = [s for s in per_row if s is not None]
+        average_sample_ser = sum(scored) / len(scored) if scored else 0.0
+
+        return {
+            "overall_ser": util.smart_round(overall_ser, 4),
+            "average_sample_ser": util.smart_round(average_sample_ser, 4),
+            "ser_parse_failures": self._parse_failures,
+            "ser_rows_scored": len(scored),
+        }
+
+    async def compute_record_level_scores(self, candidates, references,
+                                          task_name=None, model_name=None):
+        raw_results = await self._judge_all(candidates, references, task_name, model_name)
+        per_row: list[float | None] = []
+        nums: list[int | None] = []
+        dens: list[int | None] = []
+        raw_str: list[str] = []
+        failures = 0
+
+        for raw in raw_results:
+            raw_str.append(raw if isinstance(raw, str) else ("" if raw is None else json.dumps(raw, ensure_ascii=False)))
+            counts = _ser_parse_counts(raw)
+            if counts is None:
+                per_row.append(None)
+                nums.append(None)
+                dens.append(None)
+                failures += 1
+                continue
+            s, d, i, n = counts
+            num = s + d + i
+            per_row.append(num / n)
+            nums.append(num)
+            dens.append(n)
+
+        self._numerators = nums
+        self._denominators = dens
+        self._judge_raw = raw_str
+        self._parse_failures = failures
+        return {"ser_per_row": per_row}
+
+
+def _ser_parse_counts(raw) -> tuple[int, int, int, int] | None:
+    """Extract (substitutions, deletions, insertions, reference_words) or None."""
+    if isinstance(raw, dict):
+        obj = raw
+    elif isinstance(raw, str):
+        obj = _extract_json(raw)
+    else:
+        return None
+    if not isinstance(obj, dict):
+        return None
+    try:
+        s = int(obj["substitutions"])
+        d = int(obj["deletions"])
+        i = int(obj["insertions"])
+        n = int(obj["reference_words"])
+    except (KeyError, TypeError, ValueError):
+        return None
+    if n <= 0 or s < 0 or d < 0 or i < 0:
+        return None
+    return s, d, i, n
