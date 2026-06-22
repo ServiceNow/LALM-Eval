@@ -152,11 +152,23 @@ Get up and running in under a minute:
 # Clone and install
 git clone https://github.com/ServiceNow/AU-Harness.git
 cd AU-Harness
-pip install -r requirements.txt
+bash setup.sh
 
 # Run your first evaluation
 cp sample_config.yaml config.yaml
 bash evaluate.sh
+
+# Run EVA voice agent evaluation
+# First, fill in your API keys (path shown after running setup.sh):
+cp ../eva/.env.example ../eva/.env
+# Edit ../eva/.env with your API keys, then:
+bash evaluate.sh --eva
+
+# Run EVA in text-only mode (no audio/STT/TTS required)
+bash evaluate.sh --eva --text
+
+# Optional: specify a custom EVA branch (defaults to main)
+EVA_BRANCH=my-branch bash setup.sh
 ```
 
 Results will be generated in `run_logs/` with detailed metrics and analysis.
